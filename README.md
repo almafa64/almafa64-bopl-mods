@@ -29,4 +29,4 @@ Click [this link](https://docs.bepinex.dev/articles/user_guide/installation/inde
 4. **Important**: The solution uses DLLs from the **installed** BepInEx, so install it before step 5
 5. Start Almafa64BoplMods.sln
 6. Build the mod you would like
-7. Mod DLL is at &lt;Mod name&gt;\\bin\\&lt;Release/Debug&gt;\\net46\\&lt;Mod name&gt;.dll
+7. Mod DLL is at &lt;Mod name&gt;\\bin\\&lt;Release/Debug&gt;\\net46\\&lt;Mod name&gt;.dll (it will be copied to GameFolder\\BepInEx\\plugins\\&lt;Mod name&gt;)
