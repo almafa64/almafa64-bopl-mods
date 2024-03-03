@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BoplModSyncer", "BoplModSyn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BoplBattleTemplate", "BoplBattleTemplate\BoplBattleTemplate.csproj", "{D7578153-103E-4EB1-93CA-BFCEFE3299A6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtomGrenade", "AtomGrenade\AtomGrenade.csproj", "{72F1148E-8D29-4681-8F16-80D17F6758C2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,8 +23,15 @@ Global
 		{D7578153-103E-4EB1-93CA-BFCEFE3299A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7578153-103E-4EB1-93CA-BFCEFE3299A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7578153-103E-4EB1-93CA-BFCEFE3299A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72F1148E-8D29-4681-8F16-80D17F6758C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72F1148E-8D29-4681-8F16-80D17F6758C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72F1148E-8D29-4681-8F16-80D17F6758C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72F1148E-8D29-4681-8F16-80D17F6758C2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {24B2FA73-B67D-4EEF-8B5D-E1DCC0275508}
 	EndGlobalSection
 EndGlobal
