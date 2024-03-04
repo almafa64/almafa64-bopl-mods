@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using UnityEngine.SceneManagement;
 
 namespace BoplBattleTemplate
 {
@@ -17,8 +18,18 @@ namespace BoplBattleTemplate
 			harmony = new(Info.Metadata.GUID);
 			logger = Logger;
 			config = Config;
+			SceneManager.sceneLoaded += OnSceneLoad;
 
 			Logger.LogMessage($"guid: {Info.Metadata.GUID}, name: {Info.Metadata.Name}, version: {Info.Metadata.Version}");
+		}
+
+		private void OnSceneLoad(Scene scene, LoadSceneMode mode)
+		{
+			if(scene.name == "MainMenu")
+			{
+
+				return;
+			}
 		}
 	}
 
