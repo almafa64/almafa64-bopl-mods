@@ -10,9 +10,10 @@ All of my mods for [Bopl Battle](https://store.steampowered.com/app/1686940/Bopl
 
 ## Mods info
 All mods need **BepInEx** Version **5.4.22**
-- **[BoplTranslator](https://github.com/almafa64/Bopl-Battle-Translator-Mod)** version: 1.0.0
-- **BoplModSyncer** version: 1.0.0
-- **BoplBattleTemplate**: Base of all my mods. [Thanks shad0w_dev](https://discord.com/channels/1175164882388275310/1177300281705365676/1177333041048334336)
+- **BoplBattleTemplate**: Base of all my mods. More advanced version of [shad0w_dev's](https://discord.com/channels/1175164882388275310/1177300281705365676/1177333041048334336) (thanks shad0w_dev)
+- **[BoplTranslator](https://github.com/almafa64/Bopl-Battle-Translator-Mod)** (1.0.0): Custom translation support.
+- **BoplModSyncer** (1.0.0): Checks if every client has mods (maybe downloads missing).
+- **AtomGrenade** (1.0.0): Set power in config. Changes texture if power is bigger than normal.
 
 ## Installation
 Need help to install BepInEx?<br>
