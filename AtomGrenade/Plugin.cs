@@ -3,8 +3,9 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using BoplFixedMath;
 using HarmonyLib;
+using System.IO;
 using System.Reflection;
-using UnityEngine.SceneManagement;
+using UnityEngine;
 
 namespace AtomGrenade
 {
@@ -14,25 +15,34 @@ namespace AtomGrenade
 		internal static Harmony harmony;
 		internal static ManualLogSource logger;
 		internal static ConfigFile config;
-		internal static ConfigEntry<int> grenadePower;
+		internal static ConfigEntry<double> grenadePower;
+
+		internal static Sprite atomSprite;
 
 		private void Awake()
 		{
 			harmony = new(Info.Metadata.GUID);
 			logger = Logger;
 			config = Config;
-			SceneManager.sceneLoaded += OnSceneLoad;
 
-			grenadePower = config.Bind("Settings", "grenade power multiplier", 1, "Maximum somewhere around 5");
+			grenadePower = config.Bind("Settings", "grenade power multiplier", 1d, "Minimum is 0.0 (negative will set it to 1.0). Maximum somewhere around 5");
+			if (grenadePower.Value < 0d) grenadePower.Value = 1d;
 
 			MethodInfo detonate = AccessTools.Method(typeof(GrenadeExplode), nameof(GrenadeExplode.Detonate));
+			MethodInfo spawn = AccessTools.Method(typeof(GameSessionHandler), "SpawnPlayers");
+			
 			HarmonyMethod detonatePatch = new(typeof(Patches), nameof(Patches.Detonate_Prefix));
+			HarmonyMethod spawnPatch = new(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix));
+			
 			harmony.Patch(detonate, prefix: detonatePatch);
-		}
+			harmony.Patch(spawn, postfix: spawnPatch);
 
-		private void OnSceneLoad(Scene scene, LoadSceneMode mode)
-		{
-
+			using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AtomGrenade.atom_grenade.png");
+			byte[] buffer = new byte[stream.Length];
+			stream.Read(buffer, 0, buffer.Length);
+			Texture2D atomTexture = new(256, 256);
+			atomTexture.LoadImage(buffer);
+			atomSprite = Sprite.Create(atomTexture, new Rect(0, 0, atomTexture.width, atomTexture.height), new Vector2(0.5f, 0.5f), 45);
 		}
 	}
 
@@ -41,8 +51,23 @@ namespace AtomGrenade
 		public static bool Detonate_Prefix(GrenadeExplode __instance)
 		{
 			Traverse t = Traverse.Create(__instance);
-			t.Field<IPhysicsCollider>("hitbox").Value.Scale *= new Fix(Plugin.grenadePower.Value);
+			t.Field<IPhysicsCollider>("hitbox").Value.Scale *= (Fix)Plugin.grenadePower.Value;
 			return true;
+		}
+
+		public static void SpawnPlayers_Postfix()
+		{
+			if (Plugin.grenadePower.Value <= 1d) return;
+
+			// change sprite on prefab and dummy
+			foreach (SpriteRenderer renderer in Resources.FindObjectsOfTypeAll<SpriteRenderer>())
+			{
+				if (renderer.name != "dummyGrenade") continue;
+				renderer.sprite = Plugin.atomSprite;
+				renderer.transform.parent.GetComponent<ThrowItem2>()
+					.ItemPrefab.GetComponent<SpriteRenderer>().sprite = Plugin.atomSprite;
+				break;
+			}
 		}
 	}
 }
