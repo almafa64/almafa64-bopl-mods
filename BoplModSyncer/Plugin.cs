@@ -39,7 +39,7 @@ namespace BoplModSyncer
 
 		private void Start()
 		{
-			// Get all released mod
+			// Get all released mod links
 			WebClient wc = new();
 			string modList = wc.DownloadString(MOD_LIST);
 			string[] modLines = modList.TrimEnd().Split('\n');
@@ -53,33 +53,32 @@ namespace BoplModSyncer
 				{
 					datas[i] = datas[i].Trim();
 				}
-				Mod mod = new(datas[0], datas[1], datas[2]);
+				Mod mod = new(datas[2]);
 				officalMods.Add(datas[2].Split('/').Last(), mod);
 			}
 
-			// Get all downloaded released mods and non released
+			// Get all downloaded mods (and add link if it's released)
 			List<string> hashes = [];
 			foreach (BepInEx.PluginInfo plugin in Chainloader.PluginInfos.Values)
 			{
-				string hash = Utils.Checksum(plugin.Location);
+				string hash = Utils.ChecksumFile(plugin.Location);
 				hashes.Add(hash);
-				if (!officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out Mod mod))
-				{
-					mod.Name = plugin.Metadata.Name;
-					mod.Version = plugin.Metadata.Version.ToString();
-				}
+
+				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out Mod mod);
+				mod.Plugin = plugin;
 				mod.Hash = hash;
-				mod.Guid = plugin.Metadata.GUID;
-				mod.Path = plugin.Location;
+
+				Utils.GetConfigEntries(plugin);
+
 				_mods.Add(plugin.Metadata.GUID, mod);
 			}
 
-			_checksum = Utils.CombineHashes(hashes);
-			SetChecksumText();
+			SetChecksumText(Utils.CombineHashes(hashes));
 		}
 
-		private void SetChecksumText()
+		private void SetChecksumText(string text)
 		{
+			_checksum = text;
 			checksumText.text = CHECKSUM;
 			checksumText.fontSize -= 5;
 			Vector3 pos = Camera.main.WorldToScreenPoint(checksumText.transform.position);
@@ -96,21 +95,18 @@ namespace BoplModSyncer
 			Destroy(hashObj.GetComponent<LocalizedText>());
 			checksumText = hashObj.GetComponent<TextMeshProUGUI>();
 			checksumText.transform.position = exitText.transform.position;
-			if (_checksum != null) SetChecksumText();
+			if (_checksum != null) SetChecksumText(_checksum);
 		}
 	}
 
-	public struct Mod(string name, string version, string link)
+	public struct Mod(string link)
 	{
-		public string Name { get; internal set; } = name;
-		public string Version { get; internal set; } = version;
 		public string Link { get; internal set; } = link;
-	
-		public string Guid { get; internal set; }
-		public string Path { get; internal set; }
+
 		public string Hash { get; internal set; }
+		public BepInEx.PluginInfo Plugin { get; internal set; }
 
 		public override readonly string ToString() =>
-			$"name: {Name}, version: {Version}, link: {Link}, guid: {Guid}, hash: {Hash}";
+			$"name: '{Plugin.Metadata.Name}', version: '{Plugin.Metadata.Version}', link: '{Link}', guid: '{Plugin.Metadata.GUID}', hash: '{Hash}'";
 	}
 }
