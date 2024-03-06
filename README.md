@@ -21,8 +21,8 @@ Need help to install BepInEx?<br>
 Click [this link](https://docs.bepinex.dev/articles/user_guide/installation/index.html) to get started!
 
 #### After BepInEx installed
-1. Get zips from [release page](https://github.com/almafa64/almafa64-bopl-mods/releases)
-2. Extract the content of **&lt;mod name&gt;.zip** into **&lt;Bopl path&gt;\\BepInEx** folder<br>
+1. Get mods from [release page](https://github.com/almafa64/almafa64-bopl-mods/releases)
+2. Follow the Installation instruction on mod release page<br>
 
 ## Building
 1. Clone repo
