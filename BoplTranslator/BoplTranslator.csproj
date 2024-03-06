@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net46</TargetFramework>
@@ -253,6 +253,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo copying from $(TargetPath) to GameFolder\BepInEx\plugins\$(TargetName)\&#xD;&#xA;taskkill /f /im &quot;BoplBattle.exe&quot; /t 2&gt;nul &amp;set errorlevel=0&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\&quot; /y /e /i" />
+    <Exec Command="echo copying from $(TargetPath) to GameFolder\BepInEx\plugins\$(TargetName)\&#xD;&#xA;taskkill /f /im &quot;BoplBattle.exe&quot; /t 2&gt;nul &amp;set errorlevel=0&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\&quot; /y /e /i&#xD;&#xA;&#xD;&#xA;XCOPY &quot;translations&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\translations\&quot; /e /Y" />
   </Target>
 </Project>
