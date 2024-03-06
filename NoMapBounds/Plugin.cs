@@ -1,15 +1,12 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using BoplFixedMath;
 using HarmonyLib;
-using System.IO;
-using System.Reflection;
-using UnityEngine;
 
 namespace NoMapBounds
 {
 	[BepInPlugin("com.almafa64.NoMapBounds", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
 		internal static Harmony harmony;

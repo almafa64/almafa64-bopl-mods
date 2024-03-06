@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace BoplModSyncer
 {
-	internal class Utils
+	public class Utils
 	{
-		public static string Checksum(string path)
+		public static string ChecksumFile(string path)
 		{
 			using SHA256 algorithm = SHA256.Create();
 			using FileStream stream = File.OpenRead(path);

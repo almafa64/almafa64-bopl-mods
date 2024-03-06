@@ -10,6 +10,7 @@ using UnityEngine;
 namespace AtomGrenade
 {
 	[BepInPlugin("com.almafa64.AtomGrenade", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
 		internal static Harmony harmony;

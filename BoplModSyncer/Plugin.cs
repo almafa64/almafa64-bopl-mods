@@ -14,6 +14,7 @@ using UnityEngine.SceneManagement;
 namespace BoplModSyncer
 {
 	[BepInPlugin("com.almafa64.BoplModSyncer", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
@@ -67,8 +68,6 @@ namespace BoplModSyncer
 				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out Mod mod);
 				mod.Plugin = plugin;
 				mod.Hash = hash;
-
-				Utils.GetConfigEntries(plugin);
 
 				_mods.Add(plugin.Metadata.GUID, mod);
 			}

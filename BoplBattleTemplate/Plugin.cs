@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 namespace BoplBattleTemplate
 {
 	[BepInPlugin("com.almafa64.PLUGIN_NAME", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
 		internal static Harmony harmony;
