@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BoplBattleTemplate", "BoplB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtomGrenade", "AtomGrenade\AtomGrenade.csproj", "{72F1148E-8D29-4681-8F16-80D17F6758C2}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NoMapBounds", "NoMapBounds\NoMapBounds.csproj", "{27620746-80D6-4E64-A62F-45775F8DC201}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{72F1148E-8D29-4681-8F16-80D17F6758C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72F1148E-8D29-4681-8F16-80D17F6758C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72F1148E-8D29-4681-8F16-80D17F6758C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27620746-80D6-4E64-A62F-45775F8DC201}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27620746-80D6-4E64-A62F-45775F8DC201}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27620746-80D6-4E64-A62F-45775F8DC201}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27620746-80D6-4E64-A62F-45775F8DC201}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
