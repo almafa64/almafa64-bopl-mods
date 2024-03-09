@@ -29,15 +29,15 @@ namespace AtomGrenade
 			grenadePower = config.Bind("Settings", "grenade power multiplier", 1d, "Minimum is 0.0 (negative will set it to 1.0). Maximum somewhere around 5");
 			if (grenadePower.Value < 0d) grenadePower.Value = 1d;
 
-			MethodInfo detonate = AccessTools.Method(typeof(GrenadeExplode), nameof(GrenadeExplode.Detonate));
-			MethodInfo spawn = AccessTools.Method(typeof(GameSessionHandler), "SpawnPlayers");
+			harmony.Patch(
+				AccessTools.Method(typeof(GrenadeExplode), nameof(GrenadeExplode.Detonate)), 
+				prefix: new HarmonyMethod(typeof(Patches), nameof(Patches.Detonate_Prefix))
+			);
+			harmony.Patch(
+				AccessTools.Method(typeof(GameSessionHandler), "SpawnPlayers"), 
+				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix))
+			);
 			
-			HarmonyMethod detonatePatch = new(typeof(Patches), nameof(Patches.Detonate_Prefix));
-			HarmonyMethod spawnPatch = new(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix));
-			
-			harmony.Patch(detonate, prefix: detonatePatch);
-			harmony.Patch(spawn, postfix: spawnPatch);
-
 			using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AtomGrenade.atom_grenade.png");
 			byte[] buffer = new byte[stream.Length];
 			stream.Read(buffer, 0, buffer.Length);
@@ -64,10 +64,12 @@ namespace AtomGrenade
 			foreach (SpriteRenderer renderer in Resources.FindObjectsOfTypeAll<SpriteRenderer>())
 			{
 				if (renderer.name != "dummyGrenade") continue;
+				ThrowItem2 throwItem2 = renderer.transform.parent.GetComponent<ThrowItem2>();
+				if(throwItem2.name.Contains("Grenade"))
+				{
+					throwItem2.ItemPrefab.GetComponent<SpriteRenderer>().sprite = Plugin.atomSprite;
 				renderer.sprite = Plugin.atomSprite;
-				renderer.transform.parent.GetComponent<ThrowItem2>()
-					.ItemPrefab.GetComponent<SpriteRenderer>().sprite = Plugin.atomSprite;
-				break;
+				}
 			}
 		}
 	}
