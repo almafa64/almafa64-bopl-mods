@@ -76,6 +76,8 @@ namespace BoplTranslator
 			{ "play_empty_lobby", "your lobby is empty" },
 			{ "play_invite", "invite a friend to play online" },
 			{ "play_not_abailable_demo", "not available in demo" },
+			{ "play_find_players", "find players" },
+			{ "play_stop_player_search", "stop search" },
 			{ "item_bow", "bow" },
 			{ "item_tesla_coil", "tesla coil" },
 			{ "item_engine", "engine" },
@@ -105,9 +107,10 @@ namespace BoplTranslator
 			{ "item_teleport", "teleport" },
 			{ "item_grappling_hook", "grappling hook" },
 			{ "item_drill", "drill" },
+			{ "item_beam", "beam" },
 		};
 		private static readonly string[] keys = _translationLookUp.Keys.ToArray();
-		public static readonly ReadOnlyDictionary<string, string> translationLookUp = new ReadOnlyDictionary<string, string>(_translationLookUp);
+		public static readonly ReadOnlyDictionary<string, string> translationLookUp = new(_translationLookUp);
 
 		public static readonly List<string[]> languages = [];
 
