@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using Steamworks;
 using TMPro;
 using UnityEngine;
 
