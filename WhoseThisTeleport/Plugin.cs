@@ -2,7 +2,8 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using UnityEngine.SceneManagement;
+using TMPro;
+using UnityEngine;
 
 namespace WhoseThisTeleport
 {
@@ -31,9 +32,28 @@ namespace WhoseThisTeleport
 	{
 		public static bool CastTeleport_Prefix(Teleport __instance)
 		{
-			TeleportIndicator indicator = new Traverse(__instance).Field("teleportIndicator").GetValue<TeleportIndicator>();
+			Traverse traverse = new(__instance);
+			TeleportIndicator indicator = traverse.Field("teleportIndicator").GetValue<TeleportIndicator>();
 			if (indicator == null || indicator.IsDestroyed)
 			{
+				InstantAbility ability = traverse.Field("instantAbility").GetValue<InstantAbility>();
+				int index = ability.GetSlimeController().abilities.IndexOf(ability);
+				
+				GameObject go = new();
+				TextMeshPro text = go.AddComponent<TextMeshPro>();
+
+				Vector2 indPos = (Vector2)ability.GetSlimeController().body.fixtrans.position;
+				go.transform.position = new Vector3(indPos.x + 13, indPos.y + 5, 1);
+
+				switch(index)
+				{
+					case 0: text.text = "<"; break;
+					case 1: text.text = ">"; break;
+					case 2: text.text = "^"; break;
+				}
+
+				text.fontSize = 30;
+				text.fontStyle = FontStyles.Bold;
 				
 			}
 
