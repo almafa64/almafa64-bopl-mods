@@ -25,11 +25,17 @@ namespace WhoseThisTeleport
 				AccessTools.Method(typeof(Teleport), nameof(Teleport.CastAbility)),
 				prefix: new HarmonyMethod(typeof(Patches), nameof(Patches.CastTeleport_Prefix))
 			);
+
+			harmony.Patch(
+				AccessTools.Method(typeof(Teleport), nameof(Teleport.CastAbility)),
+				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.CastTeleport_Postfix))
+			);
 		}
 	}
 
 	class Patches
 	{
+		private static GameObject go;
 		public static bool CastTeleport_Prefix(Teleport __instance)
 		{
 			Traverse traverse = new(__instance);
@@ -39,11 +45,8 @@ namespace WhoseThisTeleport
 				InstantAbility ability = traverse.Field("instantAbility").GetValue<InstantAbility>();
 				int index = ability.GetSlimeController().abilities.IndexOf(ability);
 				
-				GameObject go = new();
+				go = new();
 				TextMeshPro text = go.AddComponent<TextMeshPro>();
-
-				Vector2 indPos = (Vector2)ability.GetSlimeController().body.fixtrans.position;
-				go.transform.position = new Vector3(indPos.x + 13, indPos.y + 5, 1);
 
 				switch(index)
 				{
@@ -54,10 +57,25 @@ namespace WhoseThisTeleport
 
 				text.fontSize = 30;
 				text.fontStyle = FontStyles.Bold;
-				
+				text.font = LocalizedText.localizationTable.GetFont(Language.EN, true);
+				text.outlineWidth = 0.2f;
+				text.outlineColor = Color.black;
+				text.color = ability.GetSlimeController().GetPlayerMaterial().GetColor("_ShadowColor");
 			}
 
 			return true;
+		}
+
+		public static void CastTeleport_Postfix(Teleport __instance)
+		{
+			if (!go) return;
+
+			Traverse traverse = new(__instance);
+			TeleportIndicator indicator = traverse.Field("teleportIndicator").GetValue<TeleportIndicator>();
+			go.transform.SetParent(indicator.transform, false);
+			go.transform.position = indicator.transform.position + new Vector3(15, 3);
+
+			go = null;
 		}
 	}
 }
