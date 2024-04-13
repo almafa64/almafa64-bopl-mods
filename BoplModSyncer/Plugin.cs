@@ -1,7 +1,9 @@
 ﻿using BepInEx;
 using BepInEx.Bootstrap;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using Steamworks.Data;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -36,6 +38,16 @@ namespace BoplModSyncer
 			logger = Logger;
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
+
+			harmony.Patch(
+				AccessTools.Method(typeof(SteamManager), "OnLobbyEnteredCallback"),
+				postfix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Postfix))
+			);
+
+			harmony.Patch(
+				AccessTools.Method(typeof(GameSession), nameof(GameSession.Init)),
+				postfix: new(typeof(Patches), nameof(Patches.GameSessionInit_Postfix))
+			);
 		}
 
 		private void Start()
@@ -95,6 +107,42 @@ namespace BoplModSyncer
 			checksumText = hashObj.GetComponent<TextMeshProUGUI>();
 			checksumText.transform.position = exitText.transform.position;
 			if (_checksum != null) SetChecksumText(_checksum);
+		}
+	}
+
+	class Patches
+	{
+		[System.Obsolete]
+		public static void OnEnterLobby_Postfix(Lobby lobby)
+		{
+			if (!SteamManager.LocalPlayerIsLobbyOwner) return;
+			foreach(KeyValuePair<string, Mod> mod in Plugin.mods)
+			{
+				foreach (ConfigEntryBase entry in mod.Value.Plugin.Instance.Config.GetConfigEntries())
+				{
+					lobby.SetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
+				}
+			}
+		}
+
+		[System.Obsolete]
+		public static void GameSessionInit_Postfix()
+		{
+			if (!GameLobby.isOnlineGame || SteamManager.LocalPlayerIsLobbyOwner) return;
+			Lobby lobby = SteamManager.instance.currentLobby;
+			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
+			{
+				bool saveOnSet = mod.Value.Plugin.Instance.Config.SaveOnConfigSet;
+				mod.Value.Plugin.Instance.Config.SaveOnConfigSet = false;
+				
+				foreach (ConfigEntryBase entry in mod.Value.Plugin.Instance.Config.GetConfigEntries())
+				{
+					string data = lobby.GetData($"{mod.Key}|{entry.Definition}");
+					entry.SetSerializedValue(data);
+				}
+
+				mod.Value.Plugin.Instance.Config.SaveOnConfigSet = saveOnSet;
+			}
 		}
 	}
 
