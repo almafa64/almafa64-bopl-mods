@@ -110,17 +110,37 @@ namespace BoplModSyncer
 		}
 	}
 
-	class Patches
+	static class Patches
 	{
+		public static void MySetData(this Lobby lobby, string key, string value) => 
+			lobby.SetData("almafa64>" + key, value);
+
+		public static string MyGetData(this Lobby lobby, string key) => 
+			lobby.GetData("almafa64>" + key);
+
 		[System.Obsolete]
 		public static void OnEnterLobby_Postfix(Lobby lobby)
 		{
-			if (!SteamManager.LocalPlayerIsLobbyOwner) return;
-			foreach(KeyValuePair<string, Mod> mod in Plugin.mods)
+			string checksumField = "checksum";
+
+			if (!SteamManager.LocalPlayerIsLobbyOwner)
 			{
-				foreach (ConfigEntryBase entry in mod.Value.Plugin.Instance.Config.GetConfigEntries())
+				if (lobby.MyGetData(checksumField) != Plugin.CHECKSUM)
 				{
-					lobby.SetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
+					// ToDo print out needed mods (maybe download released automaticly)
+					SteamManager.instance.LeaveLobby();
+				}
+				return;
+			}
+
+			lobby.MySetData(checksumField, Plugin.CHECKSUM);
+			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
+			{
+				ConfigFile config = mod.Value.Plugin.Instance.Config;
+
+				foreach (ConfigEntryBase entry in config.GetConfigEntries())
+				{
+					lobby.MySetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
 				}
 			}
 		}
@@ -129,19 +149,23 @@ namespace BoplModSyncer
 		public static void GameSessionInit_Postfix()
 		{
 			if (!GameLobby.isOnlineGame || SteamManager.LocalPlayerIsLobbyOwner) return;
+			// load host's config settings
 			Lobby lobby = SteamManager.instance.currentLobby;
 			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
 			{
-				bool saveOnSet = mod.Value.Plugin.Instance.Config.SaveOnConfigSet;
-				mod.Value.Plugin.Instance.Config.SaveOnConfigSet = false;
+				ConfigFile config = mod.Value.Plugin.Instance.Config;
+
+				// turn off auto saving to keep users own settings in file
+				bool saveOnSet = config.SaveOnConfigSet;
+				config.SaveOnConfigSet = false;
 				
-				foreach (ConfigEntryBase entry in mod.Value.Plugin.Instance.Config.GetConfigEntries())
+				foreach (ConfigEntryBase entry in config.GetConfigEntries())
 				{
-					string data = lobby.GetData($"{mod.Key}|{entry.Definition}");
+					string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
 					entry.SetSerializedValue(data);
 				}
 
-				mod.Value.Plugin.Instance.Config.SaveOnConfigSet = saveOnSet;
+				config.SaveOnConfigSet = saveOnSet;
 			}
 		}
 	}
