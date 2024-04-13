@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 namespace BoplBattleTemplate
 {
-	[BepInPlugin("com.almafa64.PLUGIN_NAME", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInPlugin("com.almafa64.BoplBattleTemplate", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
 	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
@@ -22,6 +22,11 @@ namespace BoplBattleTemplate
 			SceneManager.sceneLoaded += OnSceneLoad;
 
 			Logger.LogMessage($"guid: {Info.Metadata.GUID}, name: {Info.Metadata.Name}, version: {Info.Metadata.Version}");
+
+			harmony.Patch(
+				AccessTools.Method(typeof(GameSessionHandler), "SpawnPlayers"),
+				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix))
+			);
 		}
 
 		private void OnSceneLoad(Scene scene, LoadSceneMode mode)
@@ -36,6 +41,9 @@ namespace BoplBattleTemplate
 
 	class Patches
 	{
-		
+		public static void SpawnPlayers_Postfix()
+		{
+			Plugin.logger.LogMessage("Spawned players");
+		}
 	}
 }
