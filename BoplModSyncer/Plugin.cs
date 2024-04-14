@@ -28,7 +28,7 @@ namespace BoplModSyncer
 		internal static ManualLogSource logger;
 		internal static string _checksum;
 		internal static readonly Dictionary<string, Mod> _mods = [];
-		internal static readonly string[] _clientOnlyGuids = [
+		internal static readonly HashSet<string> _clientOnlyGuids = [
 			"com.Melon_David.MapPicker",
 			"me.antimality.TimeStopTimer",
 			"me.antimality.SuddenDeathTimer",
@@ -37,7 +37,7 @@ namespace BoplModSyncer
 		];
 
 		public static readonly ReadOnlyDictionary<string, Mod> mods = new(_mods);
-		public static readonly ReadOnlyArray<string> clientOnlyGuids = new(_clientOnlyGuids);
+		public static readonly ReadOnlySet<string> clientOnlyGuids = new(_clientOnlyGuids);
 
 		private TextMeshProUGUI checksumText;
 

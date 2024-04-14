@@ -31,4 +31,11 @@ namespace BoplModSyncer
 			}
 		}
 	}
+
+	public class ReadOnlySet<T>(HashSet<T> set)
+	{
+		private readonly HashSet<T> set = set;
+
+		public bool Contains(T key) => set.Contains(key);
+	}
 }
