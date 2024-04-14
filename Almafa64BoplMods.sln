@@ -17,6 +17,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NoCloneCap", "NoCloneCap\No
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WhoseThisTeleport", "WhoseThisTeleport\WhoseThisTeleport.csproj", "{B6D7CE2B-45CF-417D-A055-FC85E0FA3645}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModSettingsMenu", "ModSettingsMenu\ModSettingsMenu.csproj", "{2DB41FEC-7E45-4758-906E-D8795FB305DD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RecursiveGrenade", "RecursiveGrenade\RecursiveGrenade.csproj", "{88F94C75-A82D-435D-ABE1-1E0D5DFFAD7A}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{01726689-B16C-4E0A-B337-F76DCFF4CA1F}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
@@ -58,6 +62,14 @@ Global
 		{B6D7CE2B-45CF-417D-A055-FC85E0FA3645}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6D7CE2B-45CF-417D-A055-FC85E0FA3645}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6D7CE2B-45CF-417D-A055-FC85E0FA3645}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DB41FEC-7E45-4758-906E-D8795FB305DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DB41FEC-7E45-4758-906E-D8795FB305DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DB41FEC-7E45-4758-906E-D8795FB305DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DB41FEC-7E45-4758-906E-D8795FB305DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88F94C75-A82D-435D-ABE1-1E0D5DFFAD7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88F94C75-A82D-435D-ABE1-1E0D5DFFAD7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88F94C75-A82D-435D-ABE1-1E0D5DFFAD7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88F94C75-A82D-435D-ABE1-1E0D5DFFAD7A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2FFABDD9-794E-434B-BE2E-4DECFE33C577}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2FFABDD9-794E-434B-BE2E-4DECFE33C577}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2FFABDD9-794E-434B-BE2E-4DECFE33C577}.Release|Any CPU.ActiveCfg = Release|Any CPU
