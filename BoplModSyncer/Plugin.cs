@@ -11,7 +11,6 @@ using System.Linq;
 using System.Net;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
 
 namespace BoplModSyncer
@@ -23,6 +22,7 @@ namespace BoplModSyncer
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
 		public static readonly string MOD_LIST_API = "https://api.github.com/repos/ShAdowDev16/BoplMods/contents/AllAvailableMods.txt";
 		public static readonly string MOD_LIST = "https://raw.githubusercontent.com/ShAdowDev16/BoplMods/main/AllAvailableMods.txt";
+		public static readonly ReadOnlyDictionary<string, Mod> mods = new(_mods);
 
 		internal static Harmony harmony;
 		internal static ManualLogSource logger;
@@ -35,9 +35,6 @@ namespace BoplModSyncer
 			"com.almafa64.BoplTranslator",
 			"com.WackyModer.ModNames",
 		];
-
-		public static readonly ReadOnlyDictionary<string, Mod> mods = new(_mods);
-		public static readonly ReadOnlySet<string> clientOnlyGuids = new(_clientOnlyGuids);
 
 		private TextMeshProUGUI checksumText;
 
@@ -82,6 +79,7 @@ namespace BoplModSyncer
 				if (_clientOnlyGuids.Contains(plugin.Metadata.GUID)) continue;
 
 				string hash = Utils.ChecksumFile(plugin.Location);
+				logger.LogInfo($"{plugin.Metadata.GUID} - {hash}");
 				hashes.Add(hash);
 
 				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out Mod mod);
@@ -126,6 +124,8 @@ namespace BoplModSyncer
 
 	static class Patches
 	{
+		private static readonly string checksumField = "checksum";
+
 		public static void MySetData(this Lobby lobby, string key, string value) => 
 			lobby.SetData("almafa64>" + key, value);
 
@@ -135,11 +135,14 @@ namespace BoplModSyncer
 		[System.Obsolete]
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
-			string checksumField = "checksum";
+			if (!SteamManager.LocalPlayerIsLobbyOwner) OnNonHostJoin(lobby);
+			else OnHostJoin(lobby);
+		}
 
-			if (!SteamManager.LocalPlayerIsLobbyOwner)
+		private static void OnNonHostJoin(Lobby lobby)
 			{
-				if (lobby.MyGetData(checksumField) != Plugin.CHECKSUM)
+			string lobbyChecksum = lobby.MyGetData(checksumField);
+			if (lobbyChecksum != Plugin.CHECKSUM)
 				{
 					// ToDo print out needed mods (maybe download released automaticly)
 					SteamManager.instance.LeaveLobby();
@@ -154,8 +157,9 @@ namespace BoplModSyncer
 					bool saveOnSet = config.SaveOnConfigSet;
 					config.SaveOnConfigSet = false;
 
-					foreach (ConfigEntryBase entry in config.GetConfigEntries())
+				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
 					{
+					ConfigEntryBase entry = entryDir.Value;
 						string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
 						entry.SetSerializedValue(data);
 					}
@@ -166,13 +170,16 @@ namespace BoplModSyncer
 				return;
 			}
 
+		private static void OnHostJoin(Lobby lobby)
+		{
 			lobby.MySetData(checksumField, Plugin.CHECKSUM);
 			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
 			{
 				ConfigFile config = mod.Value.Plugin.Instance.Config;
 
-				foreach (ConfigEntryBase entry in config.GetConfigEntries())
+				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
 				{
+					ConfigEntryBase entry = entryDir.Value;
 					lobby.MySetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
 				}
 				}

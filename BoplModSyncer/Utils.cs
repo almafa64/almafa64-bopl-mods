@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -30,6 +31,9 @@ namespace BoplModSyncer
 				return BitConverter.ToString(bytes).Replace("-", "");
 			}
 		}
+
+		public static Stream GetResourceStream(string namespaceName, string path) =>
+			Assembly.GetExecutingAssembly().GetManifestResourceStream($"{namespaceName}.{path}");
 	}
 
 	public class ReadOnlySet<T>(HashSet<T> set)
