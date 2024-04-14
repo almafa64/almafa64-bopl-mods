@@ -44,10 +44,10 @@ namespace BoplModSyncer
 				postfix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Postfix))
 			);
 
-			harmony.Patch(
+			/*harmony.Patch(
 				AccessTools.Method(typeof(GameSession), nameof(GameSession.Init)),
-				postfix: new(typeof(Patches), nameof(Patches.GameSessionInit_Postfix))
-			);
+				prefix: new(typeof(Patches), nameof(Patches.GameSessionInit_Prefix))
+			);*/
 		}
 
 		private void Start()
@@ -129,7 +129,26 @@ namespace BoplModSyncer
 				{
 					// ToDo print out needed mods (maybe download released automaticly)
 					SteamManager.instance.LeaveLobby();
+					return;
 				}
+
+				foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
+				{
+					ConfigFile config = mod.Value.Plugin.Instance.Config;
+
+					// turn off auto saving to keep users own settings in file
+					bool saveOnSet = config.SaveOnConfigSet;
+					config.SaveOnConfigSet = false;
+
+					foreach (ConfigEntryBase entry in config.GetConfigEntries())
+					{
+						string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
+						entry.SetSerializedValue(data);
+					}
+
+					config.SaveOnConfigSet = saveOnSet;
+				}
+
 				return;
 			}
 
@@ -145,10 +164,10 @@ namespace BoplModSyncer
 			}
 		}
 
-		[System.Obsolete]
-		public static void GameSessionInit_Postfix()
+		/*[System.Obsolete]
+		public static bool GameSessionInit_Prefix()
 		{
-			if (!GameLobby.isOnlineGame || SteamManager.LocalPlayerIsLobbyOwner) return;
+			if (!GameLobby.isOnlineGame || SteamManager.LocalPlayerIsLobbyOwner) return true;
 			// load host's config settings
 			Lobby lobby = SteamManager.instance.currentLobby;
 			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
@@ -167,7 +186,9 @@ namespace BoplModSyncer
 
 				config.SaveOnConfigSet = saveOnSet;
 			}
-		}
+
+			return true;
+		}*/
 	}
 
 	public struct Mod(string link)
