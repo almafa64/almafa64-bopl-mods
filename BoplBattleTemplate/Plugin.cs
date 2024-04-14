@@ -2,11 +2,12 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using Steamworks.Data;
 using UnityEngine.SceneManagement;
 
 namespace BoplBattleTemplate
 {
-	[BepInPlugin("com.almafa64.BoplBattleTemplate", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInPlugin($"com.almafa64.{PluginInfo.PLUGIN_NAME}", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
 	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
@@ -27,6 +28,16 @@ namespace BoplBattleTemplate
 				AccessTools.Method(typeof(GameSessionHandler), "SpawnPlayers"),
 				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix))
 			);
+
+			harmony.Patch(
+				AccessTools.Method(typeof(SteamManager), "OnLobbyEnteredCallback"),
+				postfix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Postfix))
+			);
+
+			harmony.Patch(
+				AccessTools.Method(typeof(GameSession), nameof(GameSession.Init)),
+				postfix: new(typeof(Patches), nameof(Patches.GameSessionInit_Postfix))
+			);
 		}
 
 		private void OnSceneLoad(Scene scene, LoadSceneMode mode)
@@ -44,6 +55,16 @@ namespace BoplBattleTemplate
 		public static void SpawnPlayers_Postfix()
 		{
 			Plugin.logger.LogMessage("Spawned players");
+		}
+
+		public static void OnEnterLobby_Postfix(Lobby lobby)
+		{
+			Plugin.logger.LogWarning($"you are {(SteamManager.LocalPlayerIsLobbyOwner ? "" : "not ")}the owner");
+		}
+
+		public static void GameSessionInit_Postfix()
+		{
+			Plugin.logger.LogWarning($"lobby is {(GameLobby.isOnlineGame ? "" : "not")}online, and you are {(SteamManager.LocalPlayerIsLobbyOwner ? "" : "not ")}the owner");
 		}
 	}
 }
