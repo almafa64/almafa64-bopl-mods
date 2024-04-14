@@ -50,13 +50,8 @@ namespace BoplModSyncer
 
 			harmony.Patch(
 				AccessTools.Method(typeof(SteamManager), "OnLobbyEnteredCallback"),
-				postfix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Postfix))
+				prefix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Prefix))
 			);
-
-			/*harmony.Patch(
-				AccessTools.Method(typeof(GameSession), nameof(GameSession.Init)),
-				prefix: new(typeof(Patches), nameof(Patches.GameSessionInit_Prefix))
-			);*/
 		}
 
 		private void Start()
@@ -68,6 +63,7 @@ namespace BoplModSyncer
 
 			Dictionary<string, Mod> officalMods = [];
 
+			// save links for every released mod
 			foreach (string modline in modLines)
 			{
 				string[] datas = modline.Replace("\"", "").Split(',');
@@ -103,6 +99,8 @@ namespace BoplModSyncer
 			_checksum = text;
 			checksumText.text = CHECKSUM;
 			checksumText.fontSize -= 5;
+
+			// move checksum text to the bottom of screen + 10 pixel
 			Vector3 pos = Camera.main.WorldToScreenPoint(checksumText.transform.position);
 			pos.y = 10;
 			checksumText.transform.position = Camera.main.ScreenToWorldPoint(pos);
@@ -110,7 +108,12 @@ namespace BoplModSyncer
 
 		private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
-			if (scene.name != "MainMenu") return;
+			if (scene.name == "MainMenu") OnMainMenuloaded();
+		}
+
+		private void OnMainMenuloaded()
+		{
+			// create checksum on center of screen
 			Transform canvas = GameObject.Find("Canvas (1)").transform;
 			GameObject exitText = GameObject.Find("ExitText");
 			GameObject hashObj = Instantiate(exitText, canvas);
@@ -130,7 +133,7 @@ namespace BoplModSyncer
 			lobby.GetData("almafa64>" + key);
 
 		[System.Obsolete]
-		public static void OnEnterLobby_Postfix(Lobby lobby)
+		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
 			string checksumField = "checksum";
 
@@ -172,34 +175,8 @@ namespace BoplModSyncer
 				{
 					lobby.MySetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
 				}
-			}
-		}
-
-		/*[System.Obsolete]
-		public static bool GameSessionInit_Prefix()
-		{
-			if (!GameLobby.isOnlineGame || SteamManager.LocalPlayerIsLobbyOwner) return true;
-			// load host's config settings
-			Lobby lobby = SteamManager.instance.currentLobby;
-			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
-			{
-				ConfigFile config = mod.Value.Plugin.Instance.Config;
-
-				// turn off auto saving to keep users own settings in file
-				bool saveOnSet = config.SaveOnConfigSet;
-				config.SaveOnConfigSet = false;
-				
-				foreach (ConfigEntryBase entry in config.GetConfigEntries())
-				{
-					string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
-					entry.SetSerializedValue(data);
 				}
-
-				config.SaveOnConfigSet = saveOnSet;
 			}
-
-			return true;
-		}*/
 	}
 
 	public struct Mod(string link)
