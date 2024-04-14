@@ -12,6 +12,9 @@ def delete_tree(path):
 old_name = "BoplBattleTemplate"
 old_desc = "My first plugin"
 name = input("project name: ")
+if os.path.exists(name):
+	input(f"The project {name} already exists \n")
+	exit()
 desc = input("project description: ")
 
 delete_tree(f"{old_name}/obj")
