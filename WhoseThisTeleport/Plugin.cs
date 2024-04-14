@@ -31,16 +31,12 @@ namespace WhoseThisTeleport
 			fontSize = config.Bind("WhoseThisTeleport", "font size", 30f);
 			showEveryTeleport = config.Bind("WhoseThisTeleport", "show for every teleport", false);
 			whiteOnly = config.Bind("WhoseThisTeleport", "white only", false, "Turns off text coloring");
-			textType = config.Bind("WhoseThisTeleport", "text type", "arrow", "values: arrow, number");
+			textType = config.Bind("WhoseThisTeleport", "text type", "arrow", new ConfigDescription("", new AcceptableValueList<string>("number", "arrow")));
 			textOffset = config.Bind("WhoseThisTeleport", "text offset", new Vector2(15, 3), "offset from left of the portal");
 
 			harmony.Patch(
 				AccessTools.Method(typeof(Teleport), nameof(Teleport.CastAbility)),
-				prefix: new HarmonyMethod(typeof(Patches), nameof(Patches.CastTeleport_Prefix))
-			);
-
-			harmony.Patch(
-				AccessTools.Method(typeof(Teleport), nameof(Teleport.CastAbility)),
+				prefix: new HarmonyMethod(typeof(Patches), nameof(Patches.CastTeleport_Prefix)),
 				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.CastTeleport_Postfix))
 			);
 
@@ -55,6 +51,7 @@ namespace WhoseThisTeleport
 	{
 		private static string GetSymbolForAbility(int index)
 		{
+			// vs said this was better okay? it wasn't me
 			return Plugin.textType.Value switch
 			{
 				"number" => index switch
@@ -74,7 +71,7 @@ namespace WhoseThisTeleport
 			};
 		}
 
-		private static GameObject go;
+		private static GameObject symbolGameObject;
 		private static int thisId;
 		public static bool CastTeleport_Prefix(Teleport __instance)
 		{
@@ -89,8 +86,8 @@ namespace WhoseThisTeleport
 				
 				int index = controller.abilities.IndexOf(ability);
 
-				go = new();
-				TextMeshPro text = go.AddComponent<TextMeshPro>();
+				symbolGameObject = new("portal button symbol");
+				TextMeshPro text = symbolGameObject.AddComponent<TextMeshPro>();
 
 				text.text = GetSymbolForAbility(index);
 
@@ -108,14 +105,13 @@ namespace WhoseThisTeleport
 
 		public static void CastTeleport_Postfix(Teleport __instance)
 		{
-			if (!go) return;
+			if (!symbolGameObject) return;
 
-			Traverse traverse = new(__instance);
-			TeleportIndicator indicator = traverse.Field("teleportIndicator").GetValue<TeleportIndicator>();
-			go.transform.SetParent(indicator.transform, false);
-			go.transform.position = indicator.transform.position + new Vector3(Plugin.textOffset.Value.x, Plugin.textOffset.Value.y);
+			TeleportIndicator indicator = new Traverse(__instance).Field("teleportIndicator").GetValue<TeleportIndicator>();
+			symbolGameObject.transform.SetParent(indicator.transform, false);
+			symbolGameObject.transform.position = indicator.transform.position + new Vector3(Plugin.textOffset.Value.x, Plugin.textOffset.Value.y);
 
-			go = null;
+			symbolGameObject = null;
 		}
 
 		public static void SpawnPlayers_Postfix()

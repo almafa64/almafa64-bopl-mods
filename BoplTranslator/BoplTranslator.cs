@@ -32,7 +32,7 @@ namespace BoplTranslator
 			harmony = new(PluginInfo.PLUGIN_GUID);
 			logger = Logger;
 			config = Config;
-			lastCustomLanguageCode = Config.Bind("store", "last_custom_language_code", "", "");
+			lastCustomLanguageCode = Config.Bind("store", "last_custom_language_code", "", "dont modify pls");
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 
@@ -55,20 +55,23 @@ namespace BoplTranslator
 		{
 			if (name == "MainMenu")
 			{
+				// dont need to create selector if there is no custom language
 				if (LanguagePatch.languages.Count == 0)
 				{
 					if ((int)Settings.Get().Language > Utils.MaxOfEnum<Language>()) Settings.Get().Language = 0;
 					yield break;
 				}
 
-				// idk why but if there is not timeout it will crash
+				// idk why but if there is no timeout it will crash
 				yield return new WaitForSeconds(0.05f);
 
+				// create button for custom language selector
 				GameObject langMenu = GameObject.Find("LanguageMenu_leaveACTIVE");
 				int lastOGLanguage = langMenu.transform.childCount - 1;
 				GameObject langArrowsParent = Instantiate(GameObject.Find("Resolution"));
 				GameObject lang = Instantiate(GameObject.Find("en"), langMenu.transform);
 
+				// create arrows for button
 				Button[] buttons = langArrowsParent.GetComponentsInChildren<Button>();
 				lang.GetComponentInChildren<SelectionBorder>().ButtonsWithTextColors = buttons;
 				foreach (Button button in buttons)
@@ -95,6 +98,7 @@ namespace BoplTranslator
 				selector.langMenu = langMenu;
 				selector.Init();
 
+				// adds button info into the menu, so it can animate it
 				MainMenu menu = langMenu.GetComponent<MainMenu>();
 				menu.ConfiguredMenuItems.Add(lang);
 				Traverse menuTraverse = Traverse.Create(menu);
@@ -107,6 +111,8 @@ namespace BoplTranslator
 				poses.Add(new Vector2(0, poses[lastOGLanguage].y - diff));
 
 				lang.name = "Custom Languages";
+
+				// modify events to work with new button
 				CallOnHover call = lang.GetComponent<CallOnHover>();
 				UnityEvent hover = call.onHover;
 				hover.RemoveAllListeners();
@@ -174,10 +180,12 @@ namespace BoplTranslator
 				}
 
 			}
+
 			InputArrows = GetComponentsInChildren<BindInputAxisToButton>();
 			textMesh = GetComponentInChildren<TextMeshProUGUI>();
 			textMesh.font = LocalizedText.localizationTable.enFontAsset;
 
+			// modify arrows event to switch between languages
 			Button left = InputArrows[1].GetComponent<Button>();
 			left.onClick.RemoveAllListeners();
 			left.onClick.AddListener(Previous);

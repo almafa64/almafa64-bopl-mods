@@ -163,14 +163,17 @@ namespace BoplTranslator
 			if ((int)currentLanguage <= MaxOGLanguage) return true;
 			if ((int)currentLanguage > tmpMaxLanguageIndex) return false;
 
-			// own language
+			// default font
 			TMP_FontAsset font = LocalizedText.localizationTable.GetFont(Language.EN, __instance.useFontWithStroke);
 
+			// get original text and text meshes
 			Traverse traverse = Traverse.Create(__instance);
 			traverse.Field("currentLanguage").SetValue(currentLanguage);
 			TextMeshProUGUI textToLocalize = traverse.Field("textToLocalize").GetValue<TextMeshProUGUI>();
 			string enText = traverse.Field("enText").GetValue<string>();
 			TextMesh textToLocalize2 = traverse.Field("textToLocalize2").GetValue<TextMesh>();
+
+			// run original code with custom languages
 
 			if (textToLocalize == null)
 			{
@@ -193,7 +196,8 @@ namespace BoplTranslator
 		{
 			if ((int)__1 <= MaxOGLanguage) return true;
 
-			__result = Traverse.Create(__instance).Method("getText", __0, languages[(int)__1 - MaxOGLanguage - 1]).GetValue<string>();
+			// run orignal getText with custom langauges
+			__result = new Traverse(__instance).Method("getText", __0, languages[(int)__1 - MaxOGLanguage - 1]).GetValue<string>();
 
 			return false;
 		}

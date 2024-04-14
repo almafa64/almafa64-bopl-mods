@@ -38,11 +38,7 @@ namespace AtomGrenade
 				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix))
 			);
 			
-			using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AtomGrenade.atom_grenade.png");
-			byte[] buffer = new byte[stream.Length];
-			stream.Read(buffer, 0, buffer.Length);
-			Texture2D atomTexture = new(256, 256);
-			atomTexture.LoadImage(buffer);
+			Texture2D atomTexture = Utils.LoadDLLTexture("AtomGrenade.atom_grenade.png");
 			atomSprite = Sprite.Create(atomTexture, new Rect(0, 0, atomTexture.width, atomTexture.height), new Vector2(0.5f, 0.5f), 45);
 		}
 	}
@@ -51,8 +47,8 @@ namespace AtomGrenade
 	{
 		public static bool Detonate_Prefix(GrenadeExplode __instance)
 		{
-			Traverse t = Traverse.Create(__instance);
-			t.Field<IPhysicsCollider>("hitbox").Value.Scale *= (Fix)Plugin.grenadePower.Value;
+			// make hitbox bigger/smaller
+			new Traverse(__instance).Field<IPhysicsCollider>("hitbox").Value.Scale *= (Fix)Plugin.grenadePower.Value;
 			return true;
 		}
 
