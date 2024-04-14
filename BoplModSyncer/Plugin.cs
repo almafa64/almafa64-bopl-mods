@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
 
 namespace BoplModSyncer
@@ -27,8 +28,16 @@ namespace BoplModSyncer
 		internal static ManualLogSource logger;
 		internal static string _checksum;
 		internal static readonly Dictionary<string, Mod> _mods = [];
+		internal static readonly string[] _clientOnlyGuids = [
+			"com.Melon_David.MapPicker",
+			"me.antimality.TimeStopTimer",
+			"me.antimality.SuddenDeathTimer",
+			"com.almafa64.BoplTranslator",
+			"com.WackyModer.ModNames",
+		];
 
-		public static ReadOnlyDictionary<string, Mod> mods = new(_mods);
+		public static readonly ReadOnlyDictionary<string, Mod> mods = new(_mods);
+		public static readonly ReadOnlyArray<string> clientOnlyGuids = new(_clientOnlyGuids);
 
 		private TextMeshProUGUI checksumText;
 
@@ -74,6 +83,8 @@ namespace BoplModSyncer
 			List<string> hashes = [];
 			foreach (BepInEx.PluginInfo plugin in Chainloader.PluginInfos.Values)
 			{
+				if (_clientOnlyGuids.Contains(plugin.Metadata.GUID)) continue;
+
 				string hash = Utils.ChecksumFile(plugin.Location);
 				hashes.Add(hash);
 
