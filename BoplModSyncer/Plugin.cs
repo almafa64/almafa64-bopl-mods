@@ -9,9 +9,11 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace BoplModSyncer
 {
@@ -35,6 +37,7 @@ namespace BoplModSyncer
 			"com.almafa64.BoplTranslator",
 			"com.WackyModer.ModNames",
 		];
+		internal static GameObject missingModsPrefab;
 
 		private TextMeshProUGUI checksumText;
 
@@ -49,6 +52,10 @@ namespace BoplModSyncer
 				AccessTools.Method(typeof(SteamManager), "OnLobbyEnteredCallback"),
 				prefix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Prefix))
 			);
+
+			AssetBundle bundle = AssetBundle.LoadFromStream(Utils.GetResourceStream(PluginInfo.PLUGIN_NAME, "testbundle"));
+			missingModsPrefab = bundle.LoadAsset<GameObject>("Panel");
+			DontDestroyOnLoad(missingModsPrefab);
 		}
 
 		private void Start()
@@ -124,7 +131,8 @@ namespace BoplModSyncer
 
 	static class Patches
 	{
-		private static readonly string checksumField = "checksum";
+		private static readonly string checksumField = "almafa64>checksum";
+		private static readonly string modListField = "almafa64>modlist";
 
 		public static void MySetData(this Lobby lobby, string key, string value) => 
 			lobby.SetData("almafa64>" + key, value);
@@ -134,53 +142,107 @@ namespace BoplModSyncer
 
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
-			if (SteamManager.LocalPlayerIsLobbyOwner) OnHostJoin(lobby);
-			else OnNonHostJoin(lobby);
+			if (SteamManager.LocalPlayerIsLobbyOwner)
+				OnHostJoin(lobby);                                       // you are host
+			else if (lobby.MyGetData(checksumField) == Plugin.CHECKSUM)
+				SyncConfigs(lobby);                                      // you have same mods as host
+			else
+				ModMismatch(lobby);                                      // you dont have same mods as host
 		}
 
-		private static void OnNonHostJoin(Lobby lobby)
+		private static void ModMismatch(Lobby lobby)
+		{
+			// ToDo maybe download configs too now so game doesnt need to restart twice
+
+			// ToDo use checksum
+			List<string> modList = lobby.MyGetData(modListField).Split('|').ToList();
+			foreach (string modGUID in Plugin.mods.Keys)
 			{
-			string lobbyChecksum = lobby.MyGetData(checksumField);
-			if (lobbyChecksum != Plugin.CHECKSUM)
-				{
-					// ToDo print out needed mods (maybe download released automaticly)
-					SteamManager.instance.LeaveLobby();
-					return;
-				}
+				modList.Remove(modGUID);
+			}
 
-				foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
-				{
-					ConfigFile config = mod.Value.Plugin.Instance.Config;
+			SteamManager.instance.LeaveLobby();
 
-					// turn off auto saving to keep users own settings in file
-					bool saveOnSet = config.SaveOnConfigSet;
-					config.SaveOnConfigSet = false;
+			// --- missing mods panel ---
+
+			// get canvas in main menu or selector scenes
+			Transform canvas;
+			if (SceneManager.GetActiveScene().name == "MainMenu")
+				canvas = GameObject.Find("Canvas (1)").transform;
+			else
+				canvas = GameObject.Find("Canvas").transform;
+
+			GameObject missingModsPanel = Object.Instantiate(Plugin.missingModsPrefab, canvas);
+			Transform row = missingModsPanel.transform.Find("NeededModList/Viewport/Content/Toggle");
+
+			void makeRow(string text, bool copyRow)
+			{
+				// create new row if there is still more mods
+				Transform rowCopy = copyRow ? Object.Instantiate(row, row.parent) : null;
+				
+				row.Find("Background/Label").GetComponent<Text>().text = text;
+
+				// remove toggle button if needed
+				Object.Destroy(row.GetComponent<UnityEngine.UI.Toggle>());
+				Object.Destroy(row.Find("Background").GetComponent<UnityEngine.UI.Image>());
+				Object.Destroy(row.Find("Background/Checkmark"));
+				
+				row = rowCopy;
+			}
+
+			for (int i = 0, n = modList.Count - 1; i < n; i++)
+			{
+				makeRow(modList[i], true);
+			}
+			makeRow(modList[modList.Count - 1], false);
+
+			// close panel with button click
+			Button button = missingModsPanel.transform.Find("OK Button").GetComponent<Button>();
+			button.onClick.AddListener(() => Object.Destroy(missingModsPanel));
+		}
+
+		private static void SyncConfigs(Lobby lobby)
+		{
+			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
+			{
+				ConfigFile config = mod.Value.Plugin.Instance.Config;
+
+				// turn off auto saving to keep users own settings in file
+				bool saveOnSet = config.SaveOnConfigSet;
+				config.SaveOnConfigSet = false;
 
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
-					{
+				{
 					ConfigEntryBase entry = entryDir.Value;
-						string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
-						entry.SetSerializedValue(data);
-					}
-
-					config.SaveOnConfigSet = saveOnSet;
+					string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
+					entry.SetSerializedValue(data);
 				}
+
+				config.SaveOnConfigSet = saveOnSet;
 			}
+		}
 
 		private static void OnHostJoin(Lobby lobby)
 		{
 			lobby.MySetData(checksumField, Plugin.CHECKSUM);
+			
+			StringBuilder sb = new();
 			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
 			{
 				ConfigFile config = mod.Value.Plugin.Instance.Config;
+				sb.Append(mod.Key).Append("|");
 
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
 				{
 					ConfigEntryBase entry = entryDir.Value;
 					lobby.MySetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
 				}
-				}
 			}
+
+			sb.Remove(sb.Length - 1, 1); // remove last '|'
+			// ToDo send json {'guid': <guid>, 'checksum': <checksum>, 'version': <version>, 'link': <link>}
+			lobby.MySetData(modListField, sb.ToString());
+		}
 	}
 
 	public struct Mod(string link)
