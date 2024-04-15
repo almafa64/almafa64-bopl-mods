@@ -17,6 +17,8 @@ All mods need **BepInEx** Version **5.4.22**
 - **NoMapBounds** (1.0.0): Removes map bounds.
 - **NoCloneCap** (1.0.0): Removes max clone count
 - **WhoseThisTeleport** (1.0.0): Shows whose teleport it is and with what button was it called
+- **RecursiveGrenade** (0.1.0): Grenades explode into more grenades
+- **ModSettingsMenu** (0.1.0): Adds a settings menu into the game for easier mod configuration
 - **NoAutoShrink** (1.0.0): Stops the game from auto shrinking big platforms
 
 ## Installation

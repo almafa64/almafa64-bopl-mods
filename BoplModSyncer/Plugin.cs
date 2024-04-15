@@ -22,12 +22,12 @@ namespace BoplModSyncer
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
 		public static readonly string MOD_LIST_API = "https://api.github.com/repos/ShAdowDev16/BoplMods/contents/AllAvailableMods.txt";
 		public static readonly string MOD_LIST = "https://raw.githubusercontent.com/ShAdowDev16/BoplMods/main/AllAvailableMods.txt";
+		internal static readonly Dictionary<string, Mod> _mods = [];
 		public static readonly ReadOnlyDictionary<string, Mod> mods = new(_mods);
 
 		internal static Harmony harmony;
 		internal static ManualLogSource logger;
 		internal static string _checksum;
-		internal static readonly Dictionary<string, Mod> _mods = [];
 		internal static readonly HashSet<string> _clientOnlyGuids = [
 			"com.Melon_David.MapPicker",
 			"me.antimality.TimeStopTimer",
@@ -132,11 +132,10 @@ namespace BoplModSyncer
 		public static string MyGetData(this Lobby lobby, string key) => 
 			lobby.GetData("almafa64>" + key);
 
-		[System.Obsolete]
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
-			if (!SteamManager.LocalPlayerIsLobbyOwner) OnNonHostJoin(lobby);
-			else OnHostJoin(lobby);
+			if (SteamManager.LocalPlayerIsLobbyOwner) OnHostJoin(lobby);
+			else OnNonHostJoin(lobby);
 		}
 
 		private static void OnNonHostJoin(Lobby lobby)
@@ -166,8 +165,6 @@ namespace BoplModSyncer
 
 					config.SaveOnConfigSet = saveOnSet;
 				}
-
-				return;
 			}
 
 		private static void OnHostJoin(Lobby lobby)

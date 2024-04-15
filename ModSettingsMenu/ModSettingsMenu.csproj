@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net46</TargetFramework>
-    <AssemblyName>BoplTranslator</AssemblyName>
-    <Description>Custom translation support for Bopl Battle</Description>
-    <Version>1.1.0</Version>
+    <AssemblyName>ModSettingsMenu</AssemblyName>
+    <Description>in-game settings menu for mod configuration</Description>
+    <Version>0.1.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
@@ -253,6 +253,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo copying from $(TargetPath) to GameFolder\BepInEx\plugins\$(TargetName)\&#xD;&#xA;taskkill /f /im &quot;BoplBattle.exe&quot; /t 2&gt;nul &amp;set errorlevel=0&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\&quot; /y /e /i&#xD;&#xA;&#xD;&#xA;XCOPY &quot;translations&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\translations\&quot; /e /Y" />
+    <Exec Command="echo copying from $(TargetPath) to GameFolder\BepInEx\plugins\$(TargetName)\&#xD;&#xA;taskkill /f /im &quot;BoplBattle.exe&quot; /t 2&gt;nul &amp;set errorlevel=0&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\&quot; /y /e /i" />
   </Target>
 </Project>
