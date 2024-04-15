@@ -53,7 +53,7 @@ namespace BoplModSyncer
 				prefix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Prefix))
 			);
 
-			AssetBundle bundle = AssetBundle.LoadFromStream(Utils.GetResourceStream(PluginInfo.PLUGIN_NAME, "testbundle"));
+			AssetBundle bundle = AssetBundle.LoadFromStream(Utils.GetResourceStream(PluginInfo.PLUGIN_NAME, "PanelBundle"));
 			missingModsPrefab = bundle.LoadAsset<GameObject>("Panel");
 			DontDestroyOnLoad(missingModsPrefab);
 		}
@@ -97,6 +97,42 @@ namespace BoplModSyncer
 			}
 
 			SetChecksumText(Utils.CombineHashes(hashes));
+
+			// add text components into panel
+			TextMeshProUGUI title = missingModsPrefab.transform.Find("Title").gameObject.AddComponent<TextMeshProUGUI>();
+			TextMeshProUGUI info = missingModsPrefab.transform.Find("Info").gameObject.AddComponent<TextMeshProUGUI>();
+			TextMeshProUGUI ok = missingModsPrefab.transform.Find("OK Button/Text (TMP)").gameObject.AddComponent<TextMeshProUGUI>();
+			Text rowLabel = missingModsPrefab.transform.Find("NeededModList/Viewport/Content/Toggle/Background/Label").gameObject.AddComponent<Text>();
+
+			// text mesh pro settings
+			title.fontSize = 56;
+			title.color = UnityEngine.Color.black;
+			title.font = LocalizedText.localizationTable.GetFont(Language.EN, false);
+			title.alignment = TextAlignmentOptions.BaselineLeft;
+			title.fontStyle = FontStyles.Bold;
+
+			ok.fontSize = 50;
+			ok.color = UnityEngine.Color.black;
+			ok.font = LocalizedText.localizationTable.GetFont(Language.EN, false);
+			ok.alignment = TextAlignmentOptions.Center;
+			ok.fontStyle = FontStyles.Bold;
+
+			info.fontSize = 50;
+			info.color = UnityEngine.Color.black;
+			info.font = LocalizedText.localizationTable.GetFont(Language.EN, false);
+			info.alignment = TextAlignmentOptions.BaselineLeft;
+
+			// text settings
+			rowLabel.fontSize = 50;
+			rowLabel.color = new Color32(50, 50, 50, 255);
+			rowLabel.font = Font.GetDefault();
+			rowLabel.alignment = TextAnchor.MiddleLeft;
+
+			// texts
+			title.text = "Missing mods";
+			info.text = "Install | GUID";
+			ok.text = "OK";
+			rowLabel.text = "placeholder";
 		}
 
 		private void SetChecksumText(string text)
@@ -175,18 +211,22 @@ namespace BoplModSyncer
 			GameObject missingModsPanel = Object.Instantiate(Plugin.missingModsPrefab, canvas);
 			Transform row = missingModsPanel.transform.Find("NeededModList/Viewport/Content/Toggle");
 
+			// close panel with button click
+			Button button = missingModsPanel.transform.Find("OK Button").GetComponent<Button>();
+			button.onClick.AddListener(() => Object.Destroy(missingModsPanel));
+
+			if (lobby.MyGetData(checksumField) == null) return;
+
 			void makeRow(string text, bool copyRow)
 			{
 				// create new row if there is still more mods
 				Transform rowCopy = copyRow ? Object.Instantiate(row, row.parent) : null;
-				
+
 				row.Find("Background/Label").GetComponent<Text>().text = text;
 
-				// remove toggle button if needed
-				Object.Destroy(row.GetComponent<UnityEngine.UI.Toggle>());
-				Object.Destroy(row.Find("Background").GetComponent<UnityEngine.UI.Image>());
-				Object.Destroy(row.Find("Background/Checkmark"));
-				
+				// ToDo only stop interaction if there is no offical link
+				row.GetComponent<Toggle>().interactable = false;
+
 				row = rowCopy;
 			}
 
@@ -195,10 +235,6 @@ namespace BoplModSyncer
 				makeRow(modList[i], true);
 			}
 			makeRow(modList[modList.Count - 1], false);
-
-			// close panel with button click
-			Button button = missingModsPanel.transform.Find("OK Button").GetComponent<Button>();
-			button.onClick.AddListener(() => Object.Destroy(missingModsPanel));
 		}
 
 		private static void SyncConfigs(Lobby lobby)
