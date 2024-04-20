@@ -37,7 +37,12 @@ namespace BoplModSyncer
 			"com.almafa64.BoplTranslator",
 			"com.WackyModer.ModNames",
 		];
-		internal static GameObject missingModsPrefab;
+
+		internal static GameObject genericPanel;
+		internal static GameObject missingModsPanel;
+		internal static GameObject noSyncerPanel;
+		internal static GameObject installingPanel;
+		internal static GameObject restartPanel;
 
 		private TextMeshProUGUI checksumText;
 
@@ -54,8 +59,7 @@ namespace BoplModSyncer
 			);
 
 			AssetBundle bundle = AssetBundle.LoadFromStream(Utils.GetResourceStream(PluginInfo.PLUGIN_NAME, "PanelBundle"));
-			missingModsPrefab = bundle.LoadAsset<GameObject>("Panel");
-			DontDestroyOnLoad(missingModsPrefab);
+			genericPanel = bundle.LoadAsset<GameObject>("GenericPanel");
 		}
 
 		private void Start()
@@ -98,41 +102,13 @@ namespace BoplModSyncer
 
 			SetChecksumText(Utils.CombineHashes(hashes));
 
-			// add text components into panel
-			TextMeshProUGUI title = missingModsPrefab.transform.Find("Title").gameObject.AddComponent<TextMeshProUGUI>();
-			TextMeshProUGUI info = missingModsPrefab.transform.Find("Info").gameObject.AddComponent<TextMeshProUGUI>();
-			TextMeshProUGUI ok = missingModsPrefab.transform.Find("OK Button/Text (TMP)").gameObject.AddComponent<TextMeshProUGUI>();
-			Text rowLabel = missingModsPrefab.transform.Find("NeededModList/Viewport/Content/Toggle/Background/Label").gameObject.AddComponent<Text>();
-
-			// text mesh pro settings
-			title.fontSize = 56;
-			title.color = UnityEngine.Color.black;
-			title.font = LocalizedText.localizationTable.GetFont(Language.EN, false);
-			title.alignment = TextAlignmentOptions.BaselineLeft;
-			title.fontStyle = FontStyles.Bold;
-
-			ok.fontSize = 50;
-			ok.color = UnityEngine.Color.black;
-			ok.font = LocalizedText.localizationTable.GetFont(Language.EN, false);
-			ok.alignment = TextAlignmentOptions.Center;
-			ok.fontStyle = FontStyles.Bold;
-
-			info.fontSize = 50;
-			info.color = UnityEngine.Color.black;
-			info.font = LocalizedText.localizationTable.GetFont(Language.EN, false);
-			info.alignment = TextAlignmentOptions.BaselineLeft;
-
-			// text settings
-			rowLabel.fontSize = 50;
-			rowLabel.color = new Color32(50, 50, 50, 255);
-			rowLabel.font = Font.GetDefault();
-			rowLabel.alignment = TextAnchor.MiddleLeft;
-
-			// texts
-			title.text = "Missing mods";
-			info.text = "Install | GUID";
-			ok.text = "OK";
-			rowLabel.text = "placeholder";
+			PanelMaker.MakeGenericPanel(ref genericPanel);
+			noSyncerPanel = PanelMaker.MakeNoSyncerPanel(genericPanel);
+			missingModsPanel = PanelMaker.MakeMissingModsPanel(genericPanel);
+			installingPanel = PanelMaker.MakeInstallingPanel(genericPanel);
+			restartPanel = PanelMaker.MakeRestartPanel(genericPanel);
+			Destroy(genericPanel);
+			genericPanel = null;
 		}
 
 		private void SetChecksumText(string text)
@@ -168,7 +144,7 @@ namespace BoplModSyncer
 	static class Patches
 	{
 		private static readonly string checksumField = "almafa64>checksum";
-		private static readonly string modListField = "almafa64>modlist";
+		private static readonly string hostModListField = "almafa64>modlist";
 
 		public static void MySetData(this Lobby lobby, string key, string value) => 
 			lobby.SetData("almafa64>" + key, value);
@@ -176,26 +152,64 @@ namespace BoplModSyncer
 		public static string MyGetData(this Lobby lobby, string key) => 
 			lobby.GetData("almafa64>" + key);
 
+		private struct ModNetData(string guid, string version, string link, string hash)
+		{
+			public string guid = guid;
+			public string version = version;
+			public string link = link;
+			public string hash = hash;
+		}
+
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
+			string lobbyHash = lobby.MyGetData(checksumField);
+
 			if (SteamManager.LocalPlayerIsLobbyOwner)
-				OnHostJoin(lobby);                                       // you are host
-			else if (lobby.MyGetData(checksumField) == Plugin.CHECKSUM)
-				SyncConfigs(lobby);                                      // you have same mods as host
+				OnHostJoin(lobby);                                // you are host
+			else if (lobbyHash == Plugin.CHECKSUM)
+				SyncConfigs(lobby);                               // you have same mods as host
+			else if (lobbyHash == null || lobbyHash == "")
+				HostDoesntHaveSyncer(lobby);                      // host didnt install syncer
 			else
-				ModMismatch(lobby);                                      // you dont have same mods as host
+				ModMismatch(lobby);                               // you dont have same mods as host
+		}
+
+		private static void HostDoesntHaveSyncer(Lobby lobby)
+		{
+			Plugin.logger.LogWarning("host doesnt have syncer");
+
+			SteamManager.instance.LeaveLobby();
+
+			// --- no host syncer panel ---
+
+			// get canvas in main menu or selector scenes
+			Transform canvas;
+			if (SceneManager.GetActiveScene().name == "MainMenu")
+				canvas = GameObject.Find("Canvas (1)").transform;
+			else
+				canvas = GameObject.Find("Canvas").transform;
+
+			GameObject noSyncerPanel = Object.Instantiate(Plugin.noSyncerPanel, canvas);
+			PanelMaker.MakeCloseButton(noSyncerPanel);
 		}
 
 		private static void ModMismatch(Lobby lobby)
 		{
 			// ToDo maybe download configs too now so game doesnt need to restart twice
 
-			// ToDo use checksum
-			List<string> modList = lobby.MyGetData(modListField).Split('|').ToList();
-			foreach (string modGUID in Plugin.mods.Keys)
+			List<ModNetData> missingMods = [];
+			foreach (string hostMod in lobby.MyGetData(hostModListField).Split('|'))
 			{
-				modList.Remove(modGUID);
+				// guid,ver,link,hash
+				string[] datas = hostMod.Split(',');
+				ModNetData modData = new(datas[0], datas[1], datas[2], datas[3]);
+
+				// if guid isnt found in local mods or hash isnt same then its missing
+				if (!Plugin.mods.TryGetValue(modData.guid, out Mod mod) || mod.Hash != modData.hash)
+					missingMods.Add(modData);
 			}
+
+			Plugin.logger.LogWarning("missing: " + string.Join("\n", missingMods.Select(m => $"{m.guid} (v{m.version})")));
 
 			SteamManager.instance.LeaveLobby();
 
@@ -208,33 +222,50 @@ namespace BoplModSyncer
 			else
 				canvas = GameObject.Find("Canvas").transform;
 
-			GameObject missingModsPanel = Object.Instantiate(Plugin.missingModsPrefab, canvas);
+			GameObject missingModsPanel = Object.Instantiate(Plugin.missingModsPanel, canvas);
 			Transform row = missingModsPanel.transform.Find("NeededModList/Viewport/Content/Toggle");
 
+			LinkClicker linkClicker = missingModsPanel.AddComponent<LinkClicker>();
+
 			// close panel with button click
-			Button button = missingModsPanel.transform.Find("OK Button").GetComponent<Button>();
-			button.onClick.AddListener(() => Object.Destroy(missingModsPanel));
+			// ToDo download selected mods
+			PanelMaker.MakeCloseButton(missingModsPanel);
 
-			if (lobby.MyGetData(checksumField) == null) return;
-
-			void makeRow(string text, bool copyRow)
+			void makeRow(ModNetData modData, bool copyRow)
 			{
 				// create new row if there is still more mods
 				Transform rowCopy = copyRow ? Object.Instantiate(row, row.parent) : null;
 
-				row.Find("Background/Label").GetComponent<Text>().text = text;
+				// com.test.testmod v1.0.0 (a4bf) link
+				StringBuilder sb = new StringBuilder(modData.guid)
+					.Append(" v").Append(modData.version)
+					.Append(" (").Append(modData.hash.Substring(0, 4)).Append(")");
 
-				// ToDo only stop interaction if there is no offical link
-				row.GetComponent<Toggle>().interactable = false;
+				if(modData.link != "")
+				{
+					// get release PAGE of mod
+					modData.link = modData.link.Substring(0, modData.link.LastIndexOf("/"));
+					sb.Append(" <link=").Append(modData.link).Append("><color=blue><b>link</b></color></link>");
+				}
+
+				TextMeshProUGUI label = row.Find("Background/Label").GetComponent<TextMeshProUGUI>();
+				label.text = sb.ToString();
+				linkClicker.textMeshes.Add(label);
+
+				// dont give option to download mod if isnt offical
+				// set toggle default to checked
+				Toggle toggle = row.GetComponent<Toggle>();
+				if (modData.link != "") toggle.isOn = true;
+				else toggle.interactable = false;
 
 				row = rowCopy;
 			}
 
-			for (int i = 0, n = modList.Count - 1; i < n; i++)
+			for (int i = 0, n = missingMods.Count - 1; i < n; i++)
 			{
-				makeRow(modList[i], true);
+				makeRow(missingMods[i], true);
 			}
-			makeRow(modList[modList.Count - 1], false);
+			makeRow(missingMods[missingMods.Count - 1], false);
 		}
 
 		private static void SyncConfigs(Lobby lobby)
@@ -261,23 +292,31 @@ namespace BoplModSyncer
 		private static void OnHostJoin(Lobby lobby)
 		{
 			lobby.MySetData(checksumField, Plugin.CHECKSUM);
-			
+
 			StringBuilder sb = new();
-			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
+			foreach (KeyValuePair<string, Mod> modDir in Plugin.mods)
 			{
-				ConfigFile config = mod.Value.Plugin.Instance.Config;
-				sb.Append(mod.Key).Append("|");
+				Mod mod = modDir.Value;
+
+				ConfigFile config = mod.Plugin.Instance.Config;
+
+				// no built in json lib + cant embed dlls without project restructure = custom format
+				// guid,ver,link,hash
+				sb.Append(modDir.Key).Append(',')
+					.Append(mod.Plugin.Metadata.Version).Append(',')
+					.Append(mod.Link).Append(',')
+					.Append(mod.Hash)
+					.Append("|");
 
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
 				{
 					ConfigEntryBase entry = entryDir.Value;
-					lobby.MySetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
+					lobby.MySetData($"{modDir.Key}|{entry.Definition}", entry.GetSerializedValue());
 				}
 			}
 
 			sb.Remove(sb.Length - 1, 1); // remove last '|'
-			// ToDo send json {'guid': <guid>, 'checksum': <checksum>, 'version': <version>, 'link': <link>}
-			lobby.MySetData(modListField, sb.ToString());
+			lobby.MySetData(hostModListField, sb.ToString());
 		}
 	}
 

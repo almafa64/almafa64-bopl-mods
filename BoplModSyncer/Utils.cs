@@ -35,11 +35,4 @@ namespace BoplModSyncer
 		public static Stream GetResourceStream(string namespaceName, string path) =>
 			Assembly.GetExecutingAssembly().GetManifestResourceStream($"{namespaceName}.{path}");
 	}
-
-	public class ReadOnlySet<T>(HashSet<T> set)
-	{
-		private readonly HashSet<T> set = set;
-
-		public bool Contains(T key) => set.Contains(key);
-	}
 }
