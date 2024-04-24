@@ -1,0 +1,9 @@
+{
+    "name": "Atom Grenade",
+    "version_number": "1.0.1",
+    "website_url": "https://github.com/almafa64/almafa64-bopl-mods/tree/master/AtomGrenade",
+    "description": "This mod adds setting to change how powerful are the grenades (and a cool texture too)",
+    "dependencies": [
+        "BepInEx-BepInExPack-5.4.2100"
+    ]
+}
