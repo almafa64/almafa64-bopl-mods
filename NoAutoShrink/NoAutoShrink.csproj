@@ -8,6 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <Configurations>Debug;Release;Thunderstore</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -253,6 +254,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo copying from $(TargetPath) to GameFolder\BepInEx\plugins\$(TargetName)\&#xD;&#xA;taskkill /f /im &quot;BoplBattle.exe&quot; /t 2&gt;nul &amp;set errorlevel=0&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\&quot; /y /e /i&#xD;&#xA;rem zipping only on release&#xD;&#xA;if &quot;$(ConfigurationName)&quot; == &quot;Debug&quot; goto eof&#xD;&#xA;echo zipping $(TargetName).zip&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; .\ /y /e /i &amp; xcopy thunderstore\ . /y&#xD;&#xA;tar acvf &quot;$(TargetName).zip&quot; icon.png manifest.json README.md CHANGELOG.md &quot;$(TargetFileName)&quot;&#xD;&#xA;del &quot;$(TargetFileName)&quot; &amp; del icon.png &amp; del manifest.json&#xD;&#xA;move &quot;$(TargetName).zip&quot; thunderstore&#xD;&#xA;:eof" />
+    <Exec Command="if &quot;$(ConfigurationName)&quot; == &quot;Thunderstore&quot; goto zip&#xD;&#xA;echo copying from $(TargetPath) to GameFolder\BepInEx\plugins\$(TargetName)\&#xD;&#xA;taskkill /f /im &quot;BoplBattle.exe&quot; /t 2&gt;nul &amp;set errorlevel=0&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; &quot;..\GameFolder\BepInEx\plugins\$(TargetName)\&quot; /y /e /i&#xD;&#xA;rem zipping only on release&#xD;&#xA;if &quot;$(ConfigurationName)&quot; == &quot;Debug&quot; goto eof&#xD;&#xA;:zip&#xD;&#xA;echo zipping $(TargetName).zip&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; .\ /y /e /i &amp; xcopy thunderstore\ . /y&#xD;&#xA;tar acvf &quot;$(TargetName).zip&quot; icon.png manifest.json README.md CHANGELOG.md &quot;$(TargetFileName)&quot;&#xD;&#xA;del &quot;$(TargetFileName)&quot; &amp; del icon.png &amp; del manifest.json&#xD;&#xA;move &quot;$(TargetName).zip&quot; thunderstore&#xD;&#xA;:eof" />
   </Target>
 </Project>

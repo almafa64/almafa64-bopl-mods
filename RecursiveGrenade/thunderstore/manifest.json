@@ -1,8 +1,8 @@
 {
-    "name": "BoplBattleTemplate",
+    "name": "RecursiveGrenade",
     "version_number": "1.0.0",
     "website_url": "https://github.com/almafa64/almafa64-bopl-mods/tree/master/BoplBattleTemplate",
-    "description": "description",
+    "description": "Grenades explode recursivly",
     "dependencies": [
         "BepInEx-BepInExPack-5.4.2100"
     ]
