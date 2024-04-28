@@ -53,7 +53,7 @@ namespace BoplModSyncer.Utils
 			title.fontSize = 56;
 			title.color = Color.black;
 			title.font = GetDefaultFont();
-			title.alignment = TextAlignmentOptions.BaselineLeft;
+			title.alignment = TextAlignmentOptions.Left;
 			title.fontStyle = FontStyles.Bold;
 
 			ok.fontSize = 50;
@@ -66,13 +66,13 @@ namespace BoplModSyncer.Utils
 			info.fontSize = 50;
 			info.color = Color.black;
 			info.font = GetDefaultFont();
-			info.alignment = TextAlignmentOptions.BaselineLeft;
+			info.alignment = TextAlignmentOptions.Left;
 			info.fontStyle = FontStyles.Normal;
 
 			text.fontSize = 50;
 			text.color = Color.black;
 			text.font = GetDefaultFont();
-			text.alignment = TextAlignmentOptions.BaselineLeft;
+			text.alignment = TextAlignmentOptions.Left;
 			text.fontStyle = FontStyles.Normal;
 		}
 
@@ -87,7 +87,7 @@ namespace BoplModSyncer.Utils
 			rowLabel.fontSize = 50;
 			rowLabel.color = new Color32(50, 50, 50, 255);
 			rowLabel.font = GetDefaultFont();
-			rowLabel.alignment = TextAlignmentOptions.MidlineLeft;
+			rowLabel.alignment = TextAlignmentOptions.Left;
 			rowLabel.raycastTarget = false;
 	
 			GetTitleText(panel).text = "Missing mods";
@@ -120,16 +120,16 @@ namespace BoplModSyncer.Utils
 			percentage.fontSize = 50;
 			percentage.color = Color.black;
 			percentage.font = GetDefaultFont();
-			percentage.alignment = TextAlignmentOptions.MidlineLeft;
+			percentage.alignment = TextAlignmentOptions.Left;
 
 			GetTitleText(panel).text = "Downloading!";
 
 			GameObject continueButtonObject = Object.Instantiate(GetButtonComp(panel).gameObject, panel.transform);
 			Button continueButton = continueButtonObject.GetComponent<Button>();
 
+			continueButton.onClick.AddListener(() => continueButton.gameObject.SetActive(false));
 			continueButtonObject.SetActive(false);
 			continueButtonObject.name = "Continue Button";
-			continueButton.onClick.AddListener(() => continueButton.gameObject.SetActive(false));
 			continueButtonObject.transform.Find("Text (TMP)").GetComponent<TextMeshProUGUI>().text = "Continue";
 
 			return panel;
