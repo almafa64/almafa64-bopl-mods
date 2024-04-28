@@ -118,9 +118,11 @@ namespace BoplModSyncer
                         continueButton.gameObject.SetActive(true);
                         continueButton.onClick.AddListener(() =>
                         {
-                            // ToDo continue to next download
+                            continueButton.gameObject.SetActive(false);
+                            textArea.text = "";
+                            downloadNext();
                         });
-                        return; // debug
+                        return;
                     }
                     finally
                     {
