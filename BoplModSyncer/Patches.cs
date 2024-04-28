@@ -201,6 +201,7 @@ namespace BoplModSyncer
                 {
                     // get release PAGE of mod
                     string releasePage = modData.link.Substring(0, modData.link.LastIndexOf("/"));
+                    releasePage = releasePage.Remove(releasePage.LastIndexOf("/download"), "/download".Length);
                     sb.Append(" <link=").Append(releasePage).Append("><color=blue><b>link</b></color></link>");
                 }
 
