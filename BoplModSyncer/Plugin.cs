@@ -14,15 +14,15 @@ using UnityEngine.SceneManagement;
 
 namespace BoplModSyncer
 {
-    [BepInPlugin("com.almafa64.BoplModSyncer", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInPlugin("com.almafa64.BoplModSyncer", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
 	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
 		public static readonly string MOD_LIST_API = "https://api.github.com/repos/ShAdowDev16/BoplMods/contents/AllAvailableMods.txt";
 		public static readonly string MOD_LIST = "https://raw.githubusercontent.com/ShAdowDev16/BoplMods/main/AllAvailableMods.txt";
-		internal static readonly Dictionary<string, Mod> _mods = [];
-		public static readonly ReadOnlyDictionary<string, Mod> mods = new(_mods);
+		internal static readonly Dictionary<string, LocalModData> _mods = [];
+		public static readonly ReadOnlyDictionary<string, LocalModData> mods = new(_mods);
 		public static readonly bool IsDemo = Path.GetFileName(Paths.GameRootPath) == "Bopl Battle Demo";
 
 		internal static Harmony harmony;
@@ -74,7 +74,7 @@ namespace BoplModSyncer
 			string modList = wc.DownloadString(MOD_LIST);
 			string[] modLines = modList.TrimEnd().Split('\n');
 
-			Dictionary<string, Mod> officalMods = [];
+			Dictionary<string, LocalModData> officalMods = [];
 
 			// save links for every released mod
 			foreach (string modline in modLines)
@@ -84,7 +84,7 @@ namespace BoplModSyncer
 				{
 					datas[i] = datas[i].Trim();
 				}
-				Mod mod = new(datas[2]);
+				LocalModData mod = new(datas[2]);
 				officalMods.Add(datas[2].Split('/').Last(), mod);
 			}
 
@@ -98,7 +98,7 @@ namespace BoplModSyncer
 				logger.LogInfo($"{plugin.Metadata.GUID} - {hash}");
 				hashes.Add(hash);
 
-				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out Mod mod);
+				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out LocalModData mod);
 				mod.Plugin = plugin;
 				mod.Hash = hash;
 

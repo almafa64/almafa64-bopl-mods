@@ -9,7 +9,7 @@ namespace BoplModSyncer.Utils
 {
 	internal static class GameUtils
 	{
-		public static void RestartGame(Mod[] toDeleteMods)
+		public static void RestartGame(LocalModData[] toDeleteMods)
 		{
 			int gameId = Plugin.IsDemo ? 2494960 : 1686940;
 			int pid = Process.GetCurrentProcess().Id;
