@@ -16,16 +16,23 @@ namespace BoplModSyncer
 {
 	internal static class Patches
 	{
-		private static readonly string checksumField = "almafa64>checksum";
-		private static readonly string hostModListField = "almafa64>modlist";
+		private static readonly string checksumField = GameUtils.GenerateField("checksum");
+		private static readonly string hostModListField = GameUtils.GenerateField("modlist");
+		private static readonly string memberHasSyncerField = GameUtils.GenerateField("syncer");
 
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
-			string lobbyHash = lobby.MyGetData(checksumField);
+			string lobbyHash = lobby.GetData(checksumField);
 
 			if (SteamManager.LocalPlayerIsLobbyOwner)
+			{
 				OnHostJoin(lobby);                                // you are host
-			else if (lobbyHash == Plugin.CHECKSUM)
+				return;
+			}
+
+			lobby.SetMemberData(memberHasSyncerField, "1");
+
+			if (lobbyHash == Plugin.CHECKSUM)
 				SyncConfigs(lobby);                               // you have same mods as host
 			else if (lobbyHash == null || lobbyHash == "")
 				HostDoesntHaveSyncer(lobby);                      // host didnt install syncer
@@ -138,7 +145,7 @@ namespace BoplModSyncer
 		{
 			// ToDo maybe make configs too now so game doesnt need to restart twice
 
-			string hostModListText = lobby.MyGetData(hostModListField);
+			string hostModListText = lobby.GetData(hostModListField);
 			string[] hostMods = hostModListText.Split('|');
 			OnlineModData[] toInstallMods = new OnlineModData[hostMods.Length];
 			int missingModsCount = 0;
@@ -253,7 +260,7 @@ namespace BoplModSyncer
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
 				{
 					ConfigEntryBase entry = entryDir.Value;
-					string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
+					string data = lobby.GetData(GameUtils.GenerateField($"{mod.Key}|{entry.Definition}"));
 					entry.SetSerializedValue(data);
 				}
 
@@ -263,7 +270,7 @@ namespace BoplModSyncer
 
 		private static void OnHostJoin(Lobby lobby)
 		{
-			lobby.MySetData(checksumField, Plugin.CHECKSUM);
+			lobby.SetData(checksumField, Plugin.CHECKSUM);
 
 			StringBuilder sb = new();
 			foreach (KeyValuePair<string, LocalModData> modDir in Plugin.mods)
@@ -284,18 +291,19 @@ namespace BoplModSyncer
 				{
 					// guid|full_name_of_entry, value
 					ConfigEntryBase entry = entryDir.Value;
-					lobby.MySetData($"{modDir.Key}|{entry.Definition}", entry.GetSerializedValue());
+					lobby.SetData(GameUtils.GenerateField($"{modDir.Key}|{entry.Definition}"), entry.GetSerializedValue());
 				}
 			}
 
 			sb.Remove(sb.Length - 1, 1); // remove last '|'
-			lobby.MySetData(hostModListField, sb.ToString());
+			lobby.SetData(hostModListField, sb.ToString());
 		}
 
-		internal static void OnLobbyMemberJoinedCallback_Prefix(Lobby lobby, Friend friend)
+		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
 		{
-			// ToDo somehow kick player who doesnt have syncer (steam api doesnt support this)
-			Plugin.logger.LogWarning($"player {friend.Name} joined!");
+			// kick those who dont have syncer
+			if(lobby.GetMemberData(friend, memberHasSyncerField) != "1")
+				SteamManager.instance.KickPlayer(SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id));
 		}
 	}
 }

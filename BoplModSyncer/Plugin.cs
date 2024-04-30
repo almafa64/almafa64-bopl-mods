@@ -59,7 +59,7 @@ namespace BoplModSyncer
 
 			harmony.Patch(
 				AccessTools.Method(typeof(SteamManager), "OnLobbyMemberJoinedCallback"),
-				prefix: new(typeof(Patches), nameof(Patches.OnLobbyMemberJoinedCallback_Prefix))
+				postfix: new(typeof(Patches), nameof(Patches.OnLobbyMemberJoinedCallback_Postfix))
 			);
 
 			AssetBundle bundle = AssetBundle.LoadFromStream(BaseUtils.GetResourceStream(PluginInfo.PLUGIN_NAME, "PanelBundle"));

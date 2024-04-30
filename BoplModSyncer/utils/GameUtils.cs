@@ -1,5 +1,4 @@
 ﻿using BepInEx;
-using Steamworks.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -9,6 +8,8 @@ namespace BoplModSyncer.Utils
 {
 	internal static class GameUtils
 	{
+		const string DataPrefix = "almafa64>";
+
 		public static void RestartGame(LocalModData[] toDeleteMods)
 		{
 			int gameId = Plugin.IsDemo ? 2494960 : 1686940;
@@ -85,10 +86,6 @@ namespace BoplModSyncer.Utils
 			Application.Quit();
 		}
 
-		public static void MySetData(this Lobby lobby, string key, string value) =>
-			lobby.SetData("almafa64>" + key, value);
-
-		public static string MyGetData(this Lobby lobby, string key) =>
-			lobby.GetData("almafa64>" + key);
+		public static string GenerateField(string key) => DataPrefix + key;
 	}
 }
