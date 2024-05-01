@@ -52,6 +52,9 @@ namespace BoplModSyncer.Utils
 
 		public static Stream GetResourceStream(string namespaceName, string path) =>
 			Assembly.GetExecutingAssembly().GetManifestResourceStream($"{namespaceName}.{path}");
+
+		public static string GetRelativePath(string path, string relativeDirectory) =>
+			path.Substring(path.IndexOf(relativeDirectory) + relativeDirectory.Length);
 	}
 
 	// stolen

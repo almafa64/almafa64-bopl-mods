@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using Steamworks;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace BoplModSyncer.Utils
 			string path = Path.Combine(Paths.CachePath, "mod_installer_deleter.bat");
 			string toDelete = ";";
 			if (toDeleteMods != null && toDeleteMods.Length > 0)
-				toDelete = string.Join(";", toDeleteMods.Select(e => Path.GetFileName(e.Plugin.Location)));
+				toDelete = '"' + string.Join("\";\"", toDeleteMods.Select(e => BaseUtils.GetRelativePath(e.Plugin.Location, Paths.PluginPath + "\\"))) + '"';
 
 			/**
 			 * 1. wait until game is closed
@@ -59,10 +60,7 @@ namespace BoplModSyncer.Utils
 
 				echo\
 				echo [92mdeleting not needed mods[0m
-				set "do_delete={toDelete}"
-				for /r ..\plugins %%f in (*.dll) do (
-					echo %%f | findstr /C:"%do_delete%" >nul && del "%%f"
-				)
+				for %%f in ({toDelete}) do del ..\plugins\%%f
 
 				call :err_check
 
