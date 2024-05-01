@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Bootstrap;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using BoplModSyncer.Utils;
 using HarmonyLib;
@@ -27,6 +28,11 @@ namespace BoplModSyncer
 
 		internal static Harmony harmony;
 		internal static ManualLogSource logger;
+		internal static ConfigFile config;
+		internal static Plugin plugin;
+
+		internal static ConfigEntry<ulong> lastLobbyId;
+
 		internal static string _checksum;
 		internal static readonly HashSet<string> _clientOnlyGuids = [
 			"com.Melon_David.MapPicker",
@@ -49,6 +55,10 @@ namespace BoplModSyncer
 		{
 			harmony = new(Info.Metadata.GUID);
 			logger = Logger;
+			config = Config;
+			plugin = this;
+
+			lastLobbyId = config.Bind("BoplModSyncer", "last lobby id", 0ul);
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 

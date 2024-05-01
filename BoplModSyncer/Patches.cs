@@ -1,8 +1,10 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using BoplModSyncer.Utils;
+using HarmonyLib;
 using Steamworks;
 using Steamworks.Data;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,17 +22,26 @@ namespace BoplModSyncer
 		private static readonly string hostModListField = GameUtils.GenerateField("modlist");
 		private static readonly string memberHasSyncerField = GameUtils.GenerateField("syncer");
 
+		private static bool firstJoin = true;
+
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
-			string lobbyHash = lobby.GetData(checksumField);
-
 			if (SteamManager.LocalPlayerIsLobbyOwner)
 			{
+				if (firstJoin && Plugin.lastLobbyId.Value != 0) // rejoining lobby you left
+				{
+					Plugin.logger.LogWarning("rejoining: " + Plugin.lastLobbyId.Value);
+					new Traverse(SteamManager.instance).Method("TryJoinLobby", Plugin.lastLobbyId.Value).GetValue();
+					Plugin.lastLobbyId.Value = 0;
+				}
+
 				OnHostJoin(lobby);                                // you are host
 				return;
 			}
 
 			lobby.SetMemberData(memberHasSyncerField, "1");
+			string lobbyHash = lobby.GetData(checksumField);
+			firstJoin = false;
 
 			if (lobbyHash == Plugin.CHECKSUM)
 				SyncConfigs(lobby);                               // you have same mods as host
@@ -174,6 +185,7 @@ namespace BoplModSyncer
 			Plugin.logger.LogWarning("missing:\n\t- " + string.Join("\n\t- ", toInstallMods.Select(m => $"{m.Guid} v{m.Version}")));
 			Plugin.logger.LogWarning("to delete:\n\t- " + string.Join("\n\t- ", toDeleteMods.Select(m => $"{m.Plugin.Metadata.GUID} {m.Plugin.Metadata.Version}")));
 
+			Plugin.lastLobbyId.Value = lobby.Id;
 			SteamManager.instance.LeaveLobby();
 
 			// --- missing mods panel ---
@@ -302,8 +314,17 @@ namespace BoplModSyncer
 		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
 		{
 			// kick those who dont have syncer
-			if(lobby.GetMemberData(friend, memberHasSyncerField) != "1")
-				SteamManager.instance.KickPlayer(SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id));
+			IEnumerator waitForField()
+			{
+				// wait needed to give time to member to set memberHasSyncerField
+				yield return new WaitForSeconds(1);
+				if (lobby.GetMemberData(friend, memberHasSyncerField) != "1")
+				{
+					int playerIndex = SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id);
+					if(playerIndex != -1) SteamManager.instance.KickPlayer(playerIndex);
+				}
+			}
+			Plugin.plugin.StartCoroutine(waitForField());
 		}
 	}
 }
