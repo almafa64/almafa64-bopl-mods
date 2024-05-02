@@ -26,8 +26,8 @@ namespace AtomGrenade
 			logger = Logger;
 			config = Config;
 
-			grenadePower = config.Bind("Settings", "grenade power multiplier", 1d, "Minimum is 0.0 (negative will set it to 1.0). Maximum somewhere around 5");
-			if (grenadePower.Value < 0d) grenadePower.Value = 1d;
+			grenadePower = config.Bind("Settings", "grenade power multiplier", 5d, "Minimum is 0.0 (negative will set it to 1.0). Maximum somewhere around 5");
+			if (grenadePower.Value < 1d) grenadePower.Value = 1d;
 
 			harmony.Patch(
 				AccessTools.Method(typeof(GrenadeExplode), nameof(GrenadeExplode.Detonate)), 
