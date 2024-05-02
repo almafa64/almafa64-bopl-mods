@@ -2,8 +2,8 @@
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using BoplModSyncer.Utils;
 using HarmonyLib;
-using Steamworks.Data;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -22,19 +22,32 @@ namespace BoplModSyncer
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
 		public static readonly string MOD_LIST_API = "https://api.github.com/repos/ShAdowDev16/BoplMods/contents/AllAvailableMods.txt";
 		public static readonly string MOD_LIST = "https://raw.githubusercontent.com/ShAdowDev16/BoplMods/main/AllAvailableMods.txt";
-		internal static readonly Dictionary<string, Mod> _mods = [];
-		public static readonly ReadOnlyDictionary<string, Mod> mods = new(_mods);
+		internal static readonly Dictionary<string, LocalModData> _mods = [];
+		public static readonly ReadOnlyDictionary<string, LocalModData> mods = new(_mods);
+		public static readonly bool IsDemo = Path.GetFileName(Paths.GameRootPath) == "Bopl Battle Demo";
 
 		internal static Harmony harmony;
 		internal static ManualLogSource logger;
+		internal static ConfigFile config;
+		internal static Plugin plugin;
+
+		internal static ConfigEntry<ulong> lastLobbyId;
+
 		internal static string _checksum;
 		internal static readonly HashSet<string> _clientOnlyGuids = [
 			"com.Melon_David.MapPicker",
 			"me.antimality.TimeStopTimer",
 			"me.antimality.SuddenDeathTimer",
 			"com.almafa64.BoplTranslator",
+			"com.almafa64.BoplModSyncer",
 			"com.WackyModer.ModNames",
 		];
+
+		internal static GameObject genericPanel;
+		internal static GameObject missingModsPanel;
+		internal static GameObject noSyncerPanel;
+		internal static GameObject installingPanel;
+		internal static GameObject restartPanel;
 
 		private TextMeshProUGUI checksumText;
 
@@ -42,6 +55,10 @@ namespace BoplModSyncer
 		{
 			harmony = new(Info.Metadata.GUID);
 			logger = Logger;
+			config = Config;
+			plugin = this;
+
+			lastLobbyId = config.Bind("BoplModSyncer", "last lobby id", 0ul);
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 
@@ -49,6 +66,15 @@ namespace BoplModSyncer
 				AccessTools.Method(typeof(SteamManager), "OnLobbyEnteredCallback"),
 				prefix: new(typeof(Patches), nameof(Patches.OnEnterLobby_Prefix))
 			);
+
+			harmony.Patch(
+				AccessTools.Method(typeof(SteamManager), "OnLobbyMemberJoinedCallback"),
+				postfix: new(typeof(Patches), nameof(Patches.OnLobbyMemberJoinedCallback_Postfix))
+			);
+
+			AssetBundle bundle = AssetBundle.LoadFromStream(BaseUtils.GetResourceStream(PluginInfo.PLUGIN_NAME, "PanelBundle"));
+			genericPanel = bundle.LoadAsset<GameObject>("GenericPanel");
+			bundle.Unload(false);
 		}
 
 		private void Start()
@@ -58,7 +84,7 @@ namespace BoplModSyncer
 			string modList = wc.DownloadString(MOD_LIST);
 			string[] modLines = modList.TrimEnd().Split('\n');
 
-			Dictionary<string, Mod> officalMods = [];
+			Dictionary<string, LocalModData> officalMods = [];
 
 			// save links for every released mod
 			foreach (string modline in modLines)
@@ -68,7 +94,7 @@ namespace BoplModSyncer
 				{
 					datas[i] = datas[i].Trim();
 				}
-				Mod mod = new(datas[2]);
+				LocalModData mod = new(datas[2]);
 				officalMods.Add(datas[2].Split('/').Last(), mod);
 			}
 
@@ -78,18 +104,26 @@ namespace BoplModSyncer
 			{
 				if (_clientOnlyGuids.Contains(plugin.Metadata.GUID)) continue;
 
-				string hash = Utils.ChecksumFile(plugin.Location);
+				string hash = BaseUtils.ChecksumFile(plugin.Location);
 				logger.LogInfo($"{plugin.Metadata.GUID} - {hash}");
 				hashes.Add(hash);
 
-				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out Mod mod);
+				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out LocalModData mod);
 				mod.Plugin = plugin;
 				mod.Hash = hash;
 
 				_mods.Add(plugin.Metadata.GUID, mod);
 			}
 
-			SetChecksumText(Utils.CombineHashes(hashes));
+			SetChecksumText(BaseUtils.CombineHashes(hashes));
+
+			PanelMaker.MakeGenericPanel(ref genericPanel);
+			noSyncerPanel = PanelMaker.MakeNoSyncerPanel(genericPanel);
+			missingModsPanel = PanelMaker.MakeMissingModsPanel(genericPanel);
+			installingPanel = PanelMaker.MakeInstallingPanel(genericPanel);
+			restartPanel = PanelMaker.MakeRestartPanel(genericPanel);
+			Destroy(genericPanel);
+			genericPanel = null;
 		}
 
 		private void SetChecksumText(string text)
@@ -112,7 +146,7 @@ namespace BoplModSyncer
 		private void OnMainMenuloaded()
 		{
 			// create checksum on center of screen
-			Transform canvas = GameObject.Find("Canvas (1)").transform;
+			Transform canvas = PanelUtils.GetCanvas();
 			GameObject exitText = GameObject.Find("ExitText");
 			GameObject hashObj = Instantiate(exitText, canvas);
 			Destroy(hashObj.GetComponent<LocalizedText>());
@@ -120,77 +154,5 @@ namespace BoplModSyncer
 			checksumText.transform.position = exitText.transform.position;
 			if (_checksum != null) SetChecksumText(_checksum);
 		}
-	}
-
-	static class Patches
-	{
-		private static readonly string checksumField = "checksum";
-
-		public static void MySetData(this Lobby lobby, string key, string value) => 
-			lobby.SetData("almafa64>" + key, value);
-
-		public static string MyGetData(this Lobby lobby, string key) => 
-			lobby.GetData("almafa64>" + key);
-
-		public static void OnEnterLobby_Prefix(Lobby lobby)
-		{
-			if (SteamManager.LocalPlayerIsLobbyOwner) OnHostJoin(lobby);
-			else OnNonHostJoin(lobby);
-		}
-
-		private static void OnNonHostJoin(Lobby lobby)
-			{
-			string lobbyChecksum = lobby.MyGetData(checksumField);
-			if (lobbyChecksum != Plugin.CHECKSUM)
-				{
-					// ToDo print out needed mods (maybe download released automaticly)
-					SteamManager.instance.LeaveLobby();
-					return;
-				}
-
-				foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
-				{
-					ConfigFile config = mod.Value.Plugin.Instance.Config;
-
-					// turn off auto saving to keep users own settings in file
-					bool saveOnSet = config.SaveOnConfigSet;
-					config.SaveOnConfigSet = false;
-
-				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
-					{
-					ConfigEntryBase entry = entryDir.Value;
-						string data = lobby.MyGetData($"{mod.Key}|{entry.Definition}");
-						entry.SetSerializedValue(data);
-					}
-
-					config.SaveOnConfigSet = saveOnSet;
-				}
-			}
-
-		private static void OnHostJoin(Lobby lobby)
-		{
-			lobby.MySetData(checksumField, Plugin.CHECKSUM);
-			foreach (KeyValuePair<string, Mod> mod in Plugin.mods)
-			{
-				ConfigFile config = mod.Value.Plugin.Instance.Config;
-
-				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
-				{
-					ConfigEntryBase entry = entryDir.Value;
-					lobby.MySetData($"{mod.Key}|{entry.Definition}", entry.GetSerializedValue());
-				}
-				}
-			}
-	}
-
-	public struct Mod(string link)
-	{
-		public string Link { get; internal set; } = link;
-
-		public string Hash { get; internal set; }
-		public BepInEx.PluginInfo Plugin { get; internal set; }
-
-		public override readonly string ToString() =>
-			$"name: '{Plugin.Metadata.Name}', version: '{Plugin.Metadata.Version}', link: '{Link}', guid: '{Plugin.Metadata.GUID}', hash: '{Hash}'";
 	}
 }

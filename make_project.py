@@ -3,6 +3,8 @@ import shutil
 import fileinput
 import sys
 
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
 def delete_tree(path):
 	try:
 		shutil.rmtree(path)
