@@ -124,15 +124,15 @@ namespace BoplTranslator
 		public static void Init()
 		{
 			_updateText = typeof(LocalizedText).GetMethod(nameof(LocalizedText.UpdateText));
-			BoplTranslator.harmony.Patch(_updateText, prefix: new HarmonyMethod(Utils.GetMethod(nameof(UpdateTextPatch))));
+			Plugin.harmony.Patch(_updateText, prefix: new HarmonyMethod(Utils.GetMethod(nameof(UpdateTextPatch))));
 
 			_localTable = typeof(LocalizationTable).GetMethod(nameof(LocalizationTable.GetText));
-			BoplTranslator.harmony.Patch(_localTable, prefix: new HarmonyMethod(Utils.GetMethod(nameof(GetTextPatch))));
+			Plugin.harmony.Patch(_localTable, prefix: new HarmonyMethod(Utils.GetMethod(nameof(GetTextPatch))));
 
 			MaxOGLanguage = Utils.MaxOfEnum<Language>();
 
 			// read languages
-			foreach (FileInfo file in BoplTranslator.translationsDir.EnumerateFiles())
+			foreach (FileInfo file in Plugin.translationsDir.EnumerateFiles())
 			{
 				string[] words = new string[keys.Length];
 				languages.Add(words);
@@ -151,7 +151,7 @@ namespace BoplTranslator
 					string word = words[i];
 					if (word != null) continue;
 					words[i] = _translationLookUp.GetValueSafe(keys[i]);
-					BoplTranslator.logger.LogWarning($"No translation for \"{keys[i]}\" in \"{file.Name}\"");
+					Plugin.logger.LogWarning($"No translation for \"{keys[i]}\" in \"{file.Name}\"");
 				}
 			}
 			tmpMaxLanguageIndex = languages.Count + MaxOGLanguage;
