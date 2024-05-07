@@ -1,6 +1,6 @@
 {
     "name": "AtomGrenade",
-    "version_number": "1.0.2",
+    "version_number": "1.0.3",
     "website_url": "https://github.com/almafa64/almafa64-bopl-mods/tree/master/AtomGrenade",
     "description": "This mod adds setting to change how powerful are the grenades (and a cool texture too)",
     "dependencies": [
