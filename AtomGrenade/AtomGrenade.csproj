@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net46</TargetFramework>
@@ -13,10 +13,12 @@
 
   <ItemGroup>
     <None Remove="atom_grenade.png" />
+    <None Remove="atom_sheet.png" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="atom_grenade.png" />
+    <EmbeddedResource Include="atom_sheet.png" />
   </ItemGroup>
 
   <ItemGroup>
