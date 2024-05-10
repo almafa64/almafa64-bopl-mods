@@ -102,23 +102,25 @@ namespace BoplModSyncer.Utils
 
 		public static Manifest GetManifest(BepInEx.PluginInfo plugin)
 		{
-			// ToDo better search algorithm
-			string dir = Path.GetDirectoryName(plugin.Location);
-			string path = Path.Combine(dir, "manifest.json");
-			try
+			string dir = plugin.Location;
+			// loop until at top of plugins folder (dir length is plugin path length)
+			while((dir = Path.GetDirectoryName(dir)).Length > Paths.PluginPath.Length)
 			{
-				string text = File.ReadAllText(path);
-				return new Manifest(JsonUtility.FromJson<ManifestJSON>(text), dir);
+				string path = Path.Combine(dir, "manifest.json");
+				try
+				{
+					// todo check if found manifest has any connection to plugin (e.g.: mod is in mod)
+					string text = File.ReadAllText(path);
+					return new Manifest(JsonUtility.FromJson<ManifestJSON>(text), dir);
+				}
+				catch (FileNotFoundException) { }
+				catch (Exception ex)
+				{
+					Plugin.logger.LogError(ex);
+					break;
+				}
 			}
-			catch (FileNotFoundException)
-			{
-				return null;
-			}
-			catch (Exception ex)
-			{
-				Plugin.logger.LogError(ex);
-				return null;
-			}
+			return null;
 		}
 	}
 }
