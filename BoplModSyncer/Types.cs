@@ -56,7 +56,7 @@ namespace BoplModSyncer
 			{
 				if (_manifest != null) throw new System.Exception("Manifest was already set!");
 				_manifest = value;
-				Version = _manifest.Version;
+				if(_manifest != null) Version = _manifest.Version;
 			}
 		}
 
