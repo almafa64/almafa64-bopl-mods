@@ -110,6 +110,10 @@ namespace BoplModSyncer.Utils
 				string text = File.ReadAllText(path);
 				return new Manifest(JsonUtility.FromJson<ManifestJSON>(text), dir);
 			}
+			catch (FileNotFoundException)
+			{
+				return null;
+			}
 			catch (Exception ex)
 			{
 				Plugin.logger.LogError(ex);
