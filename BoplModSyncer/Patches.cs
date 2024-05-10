@@ -158,7 +158,7 @@ namespace BoplModSyncer
 			// ToDo maybe make configs too now so game doesnt need to restart twice
 
 			string hostModListText = lobby.GetData(hostModListField);
-			string[] hostMods = hostModListText.Split('|');
+			string[] hostMods = hostModListText.Split(['|'], System.StringSplitOptions.RemoveEmptyEntries);
 			OnlineModData[] toInstallMods = new OnlineModData[hostMods.Length];
 			int missingModsCount = 0;
 			foreach (string hostMod in hostMods)
@@ -230,9 +230,9 @@ namespace BoplModSyncer
 				label.text = rowTextBuilder.ToString();
 				linkClicker.textMeshes.Add(label);
 
-				// --- delete row style ---
 				if(toDelete)
 				{
+					// --- delete row style ---
 					label.fontStyle |= FontStyles.Strikethrough;
 					toggle.onValueChanged.AddListener((isOn) => toDeleteMods[index].DoDelete = isOn);
 					toggle.isOn = true;
@@ -309,7 +309,7 @@ namespace BoplModSyncer
 				}
 			}
 
-			sb.Remove(sb.Length - 1, 1); // remove last '|'
+			if(sb.Length > 0) sb.Remove(sb.Length - 1, 1); // remove last '|'
 			lobby.SetData(hostModListField, sb.ToString());
 		}
 
@@ -323,7 +323,11 @@ namespace BoplModSyncer
 				if (lobby.GetMemberData(friend, memberHasSyncerField) != "1")
 				{
 					int playerIndex = SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id);
-					if(playerIndex != -1) SteamManager.instance.KickPlayer(playerIndex);
+					if(playerIndex != -1)
+					{
+						SteamManager.instance.KickPlayer(playerIndex);
+						Plugin.logger.LogWarning($"Kicked \"{friend.Name}\" because he doesnt has syncer!");
+					}
 				}
 			}
 			Plugin.plugin.StartCoroutine(waitForField());
