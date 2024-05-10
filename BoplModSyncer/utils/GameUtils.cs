@@ -1,5 +1,5 @@
 ﻿using BepInEx;
-using Steamworks;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,10 +15,16 @@ namespace BoplModSyncer.Utils
 		{
 			int gameId = Plugin.IsDemo ? 2494960 : 1686940;
 			int pid = Process.GetCurrentProcess().Id;
+			string guid = Plugin.plugin.Info.Metadata.GUID;
 			string path = Path.Combine(Paths.CachePath, "mod_installer_deleter.bat");
 			string toDelete = ";";
 			if (toDeleteMods != null && toDeleteMods.Length > 0)
-				toDelete = '"' + string.Join("\";\"", toDeleteMods.Select(e => BaseUtils.GetRelativePath(e.Plugin.Location, Paths.PluginPath + "\\"))) + '"';
+			{
+				toDelete = '"' + string.Join(
+					"\";\"",
+					toDeleteMods.Select(e => BaseUtils.GetRelativePath(e.Plugin.Location, Paths.PluginPath + "\\"))
+				) + '"';
+			}
 
 			/**
 			 * 1. wait until game is closed
@@ -66,14 +72,22 @@ namespace BoplModSyncer.Utils
 
 				echo\
 				echo [92mcopying downloaded dlls into mod folder[0m
-				for /r %%f in ({PluginInfo.PLUGIN_NAME}\*.dll) do robocopy "%%~dpf " "..\plugins\%%~nf" "%%~nxf" /ndl /nc /ns
+				rem for /r %%f in ({guid}\*.dll) do robocopy "%%~dpf " "..\plugins\%%~nf" "%%~nxf" /ndl /nc /ns
+				cd ..\plugins
+				for /r %%f in (..\cache\{guid}\*.zip) do (
+					md "%%~nf"
+					cd "%%~nf"
+					tar -xvf "%%f"
+					cd ..
+				)
+				cd ..\cache
 
 				call :err_check
-
+				pause
 				echo\
 				echo [92mcleanup[0m
-				rmdir /s /q "{PluginInfo.PLUGIN_NAME}"
-				
+				rmdir /s /q "{guid}"
+
 				call :err_check
 
 				echo\
@@ -85,5 +99,22 @@ namespace BoplModSyncer.Utils
 		}
 
 		public static string GenerateField(string key) => DataPrefix + key;
+
+		public static Manifest GetManifest(BepInEx.PluginInfo plugin)
+		{
+			// ToDo better search algorithm
+			string dir = Path.GetDirectoryName(plugin.Location);
+			string path = Path.Combine(dir, "manifest.json");
+			try
+			{
+				string text = File.ReadAllText(path);
+				return new Manifest(JsonUtility.FromJson<ManifestJSON>(text), dir);
+			}
+			catch (Exception ex)
+			{
+				Plugin.logger.LogError(ex);
+				return null;
+			}
+		}
 	}
 }

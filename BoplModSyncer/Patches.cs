@@ -112,9 +112,10 @@ namespace BoplModSyncer
 						if (args.Cancelled) throw new("cancelled");
 						if (args.Error != null) throw args.Error;
 
-						string name = client.ResponseHeaders["Content-Disposition"];
-						name = name.Substring(name.IndexOf("filename=") + 9);
-						string path = Path.Combine(Paths.CachePath, PluginInfo.PLUGIN_NAME, name);
+						// e.g. link: https://thunderstore.io/package/download/almafa64/AtomGrenade/1.0.3/
+						string[] linkParts = downloadingMod.Link.Split('/');
+						string name = string.Join("-", [linkParts[5], linkParts[6], linkParts[7]]) + ".zip";
+						string path = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID, name);
 						Directory.CreateDirectory(Path.GetDirectoryName(path));
 
 						Plugin.logger.LogInfo("downloading: " + path);
@@ -218,8 +219,11 @@ namespace BoplModSyncer
 				if (!string.IsNullOrEmpty(modData.Link))
 				{
 					// get release PAGE of mod
-					string releasePage = modData.Link.Substring(0, modData.Link.LastIndexOf("/"));
-					releasePage = releasePage.Remove(releasePage.LastIndexOf("/download"), "/download".Length);
+					// e.g.:
+					//     download: https://thunderstore.io/package/download/almafa64/AtomGrenade/1.0.3/
+					//     release: https://thunderstore.io/c/bopl-battle/p/almafa64/AtomGrenade/
+					string[] parts = modData.Link.Split('/');
+					string releasePage = $"https://thunderstore.io/c/bopl-battle/p/{parts[5]}/{parts[6]}/";
 					rowTextBuilder.Append(" <link=").Append(releasePage).Append("><color=blue><b>link</b></color></link>");
 				}
 
@@ -291,17 +295,15 @@ namespace BoplModSyncer
 
 				ConfigFile config = mod.Plugin.Instance.Config;
 
-				// no built in json lib + cant embed dlls without project restructure = custom format
 				// guid,ver,link,hash
 				sb.Append(modDir.Key).Append(',')
-					.Append(mod.Plugin.Metadata.Version).Append(',')
+					.Append(mod.Version).Append(',')
 					.Append(mod.Link).Append(',')
-					.Append(mod.Hash)
-					.Append("|");
+					.Append(mod.Hash).Append('|');
 
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
 				{
-					// guid|full_name_of_entry, value
+					// guid|full_name_of_entry: value
 					ConfigEntryBase entry = entryDir.Value;
 					lobby.SetData(GameUtils.GenerateField($"{modDir.Key}|{entry.Definition}"), entry.GetSerializedValue());
 				}
