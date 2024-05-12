@@ -1,4 +1,6 @@
-﻿namespace BoplModSyncer
+﻿using System.Collections.ObjectModel;
+
+namespace BoplModSyncer
 {
 	public interface IModData
 	{
@@ -28,7 +30,7 @@
 		public string Hash { get; internal set; }
 		public string Link { get; internal set; } = link;
 
-		public bool DoDelete { get; internal set; }
+		public bool DoDelete { get; internal set; } = false;
 
 		private BepInEx.PluginInfo _plugin;
 		public BepInEx.PluginInfo Plugin
@@ -36,14 +38,59 @@
 			readonly get => _plugin;
 			internal set
 			{
+				if (_plugin != null) throw new System.Exception("Plugin was already set!");
 				_plugin = value;
-				// ?. -> if object (here _plugin) is null then returns null, if not then continues the accessing (Metadata.GUID)
+				// ??= -> only assign right side if left side is null
+				// ?. -> if object (here _plugin) is null then returns null
+				// if not then continue the accessing (Metadata.GUID)
 				Guid = _plugin?.Metadata.GUID;
-				Version = _plugin?.Metadata.Version.ToString();
+				Version ??= _plugin?.Metadata.Version.ToString();
+			}
+		}
+
+		private Manifest _manifest;
+		public Manifest Manifest
+		{
+			readonly get => _manifest;
+			internal set
+			{
+				if (_manifest != null) throw new System.Exception("Manifest was already set!");
+				_manifest = value;
+				if(_manifest != null) Version = _manifest.Version;
 			}
 		}
 
 		public override readonly string ToString() =>
 			$"name: '{Plugin.Metadata.Name}', version: '{Version}', link: '{Link}', guid: '{Guid}', hash: '{Hash}'";
+	}
+
+	public class Manifest
+	{
+		public string Name { get; private set; }
+		public string Version { get; private set; }
+		public string Website { get; private set; }
+		public string Description { get; private set; }
+		public ReadOnlyCollection<string> Dependencies { get; private set; }
+
+		public string Directory { get; private set; }
+
+		internal Manifest(ManifestJSON json, string dir)
+		{
+			Name = json.name;
+			Version = json.version_number;
+			Website = json.website_url;
+			Description = json.description;
+			Dependencies = new(json.dependencies);
+			Directory = dir;
+		}
+	}
+
+	internal class ManifestJSON
+	{
+		public string name;
+		public string version_number;
+		public string website_url;
+		public string description;
+		public string[] dependencies;
 	}
 }

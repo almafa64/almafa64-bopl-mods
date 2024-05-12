@@ -7,8 +7,8 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Net;
+using TinyJson;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -20,8 +20,8 @@ namespace BoplModSyncer
 	public class Plugin : BaseUnityPlugin
 	{
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
-		public static readonly string MOD_LIST_API = "https://api.github.com/repos/ShAdowDev16/BoplMods/contents/AllAvailableMods.txt";
-		public static readonly string MOD_LIST = "https://raw.githubusercontent.com/ShAdowDev16/BoplMods/main/AllAvailableMods.txt";
+		public const string THUNDERSTORE_BOPL_MODS = "https://thunderstore.io/c/bopl-battle/api/v1/package";
+
 		internal static readonly Dictionary<string, LocalModData> _mods = [];
 		public static readonly ReadOnlyDictionary<string, LocalModData> mods = new(_mods);
 		public static readonly bool IsDemo = Path.GetFileName(Paths.GameRootPath) == "Bopl Battle Demo";
@@ -81,21 +81,21 @@ namespace BoplModSyncer
 		{
 			// Get all released mod links
 			WebClient wc = new();
-			string modList = wc.DownloadString(MOD_LIST);
-			string[] modLines = modList.TrimEnd().Split('\n');
+			List<object> modsJSON = (List<object>)wc.DownloadString(THUNDERSTORE_BOPL_MODS).FromJson<object>();
 
-			Dictionary<string, LocalModData> officalMods = [];
+			Dictionary<string, Dictionary<string, string>> downloadLinks = [];
 
-			// save links for every released mod
-			foreach (string modline in modLines)
+			// get all download link for version for all mod
+			foreach(var modObj in modsJSON)
 			{
-				string[] datas = modline.Replace("\"", "").Split(',');
-				for (int i = 0; i < datas.Length; i++)
+				Dictionary<string, object> mod = modObj as Dictionary<string, object>;
+				Dictionary<string, string> modLinks = [];
+				foreach(var versionObj in (List<object>)mod["versions"])
 				{
-					datas[i] = datas[i].Trim();
+					Dictionary<string, object> version = versionObj as Dictionary<string, object>;
+					modLinks.Add((string)version["version_number"], version["download_url"] as string);
 				}
-				LocalModData mod = new(datas[2]);
-				officalMods.Add(datas[2].Split('/').Last(), mod);
+				downloadLinks.Add((string)mod["name"], modLinks);
 			}
 
 			// Get all downloaded mods (and add link if it's released)
@@ -108,9 +108,15 @@ namespace BoplModSyncer
 				logger.LogInfo($"{plugin.Metadata.GUID} - {hash}");
 				hashes.Add(hash);
 
-				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out LocalModData mod);
-				mod.Plugin = plugin;
-				mod.Hash = hash;
+				Manifest manifest = GameUtils.GetManifest(plugin);
+
+				string link = manifest == null ? "" : downloadLinks.GetValueSafe(manifest.Name).GetValueSafe(manifest.Version);
+				LocalModData mod = new(link)
+				{
+					Manifest = manifest,
+					Plugin = plugin,
+					Hash = hash
+				};
 
 				_mods.Add(plugin.Metadata.GUID, mod);
 			}
