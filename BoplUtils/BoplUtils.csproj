@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFramework>net462</TargetFramework>
     <AssemblyName>BoplUtils</AssemblyName>
     <Description>Utils for modders</Description>
     <Version>1.0.0</Version>
@@ -15,7 +15,9 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
+    <PackageReference Include="System.Text.Json" Version="8.0.3" />
     <PackageReference Include="UnityEngine.Modules" Version="2019.4.5" IncludeAssets="compile" />
+    <PackageReference Include="YamlDotNet" Version="15.1.4" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
