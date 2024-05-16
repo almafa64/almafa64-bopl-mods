@@ -49,7 +49,7 @@ namespace BoplModSyncer
 		internal static GameObject installingPanel;
 		internal static GameObject restartPanel;
 
-		private TextMeshProUGUI checksumText;
+		private static GameObject checksumTextObj;
 
 		private void Awake()
 		{
@@ -121,7 +121,7 @@ namespace BoplModSyncer
 				_mods.Add(plugin.Metadata.GUID, mod);
 			}
 
-			SetChecksumText(BaseUtils.CombineHashes(hashes));
+			MakeChecksumText(BaseUtils.CombineHashes(hashes));
 
 			PanelMaker.MakeGenericPanel(ref genericPanel);
 			noSyncerPanel = PanelMaker.MakeNoSyncerPanel(genericPanel);
@@ -132,33 +132,56 @@ namespace BoplModSyncer
 			genericPanel = null;
 		}
 
-		private void SetChecksumText(string text)
+		private void MakeChecksumText(string checksum)
 		{
-			_checksum = text;
-			checksumText.text = CHECKSUM;
-			checksumText.fontSize -= 5;
+			if (_checksum != null) throw new("Checksum text was already made!");
+			_checksum = checksum;
 
-			// move checksum text to the bottom of screen + 10 pixel
-			Vector3 pos = Camera.main.WorldToScreenPoint(checksumText.transform.position);
-			pos.y = 10;
-			checksumText.transform.position = Camera.main.ScreenToWorldPoint(pos);
+			Transform canvas = PanelUtils.GetCanvas();
+			GameObject text = GameObject.Find("ExitText");
+			GameObject hashObj = Instantiate(text, canvas);
+			hashObj.name = "hashText";
+			Destroy(hashObj.GetComponent<LocalizedText>());
+
+			TextMeshProUGUI checksumText = hashObj.GetComponent<TextMeshProUGUI>();
+			checksumText.transform.position = text.transform.position;
+			checksumText.text = checksum;
+
+			checksumTextObj = Instantiate(hashObj);
+			checksumTextObj.hideFlags = HideFlags.HideInHierarchy;
+			DontDestroyOnLoad(checksumTextObj);
+			Destroy(hashObj);
+
+			ShowChecksumText(10);
+		}
+
+		private void ShowChecksumText(int ypos)
+		{
+			if (checksumTextObj == null) return;
+
+			GameObject hashObj = Instantiate(checksumTextObj, PanelUtils.GetCanvas());
+
+			// move checksum text to the bottom of screen + 10 pixel up
+			Vector3 pos = Camera.main.WorldToScreenPoint(hashObj.transform.position);
+			pos.y = ypos;
+			hashObj.transform.position = Camera.main.ScreenToWorldPoint(pos);
 		}
 
 		private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
 			if (scene.name == "MainMenu") OnMainMenuloaded();
+			else if (scene.name.Contains("Select")) OnSelectMenuLoaded();
 		}
 
 		private void OnMainMenuloaded()
 		{
-			// create checksum on center of screen
-			Transform canvas = PanelUtils.GetCanvas();
-			GameObject exitText = GameObject.Find("ExitText");
-			GameObject hashObj = Instantiate(exitText, canvas);
-			Destroy(hashObj.GetComponent<LocalizedText>());
-			checksumText = hashObj.GetComponent<TextMeshProUGUI>();
-			checksumText.transform.position = exitText.transform.position;
-			if (_checksum != null) SetChecksumText(_checksum);
+			ShowChecksumText(10);
+		}
+
+		private void OnSelectMenuLoaded()
+		{
+			// idk why this needs to be so big
+			ShowChecksumText(1500);
 		}
 	}
 }
