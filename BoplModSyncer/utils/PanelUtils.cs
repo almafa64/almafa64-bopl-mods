@@ -30,12 +30,19 @@ namespace BoplModSyncer.Utils
 		public static GameObject GetModList(GameObject panel) =>
 			panel.transform.Find("NeededModList").gameObject;
 
-		public static Button GetButtonComp(GameObject panel) =>
+		public static Button GetOkButtonComp(GameObject panel) =>
 			panel.transform.Find("OK Button").GetComponent<Button>();
+
+		public static Button GetCancelButtonComp(GameObject panel) =>
+			panel.transform.Find("Cancel Button").GetComponent<Button>();
 
 		public static void SetupCloseButton(GameObject panel)
 		{
-			GetButtonComp(panel).onClick.AddListener(() => Object.Destroy(panel));
+			void close() => Object.Destroy(panel);
+			GetOkButtonComp(panel).onClick.AddListener(close);
+			Button.ButtonClickedEvent cancelClicked = GetCancelButtonComp(panel).onClick;
+			cancelClicked.AddListener(close);
+			cancelClicked.AddListener(() => GameUtils.CancelSyncing());
 		}
 
 		private static TMP_FontAsset GetDefaultFont() =>
@@ -47,6 +54,7 @@ namespace BoplModSyncer.Utils
 			TextMeshProUGUI title = genericPanel.transform.Find("Title").gameObject.AddComponent<TextMeshProUGUI>();
 			TextMeshProUGUI info = genericPanel.transform.Find("Info").gameObject.AddComponent<TextMeshProUGUI>();
 			TextMeshProUGUI ok = genericPanel.transform.Find("OK Button/Text (TMP)").gameObject.AddComponent<TextMeshProUGUI>();
+			TextMeshProUGUI cancel = genericPanel.transform.Find("Cancel Button/Text (TMP)").gameObject.AddComponent<TextMeshProUGUI>();
 			TextMeshProUGUI text = genericPanel.transform.Find("Text").gameObject.AddComponent<TextMeshProUGUI>();
 
 			// text mesh pro settings
@@ -56,12 +64,13 @@ namespace BoplModSyncer.Utils
 			title.alignment = TextAlignmentOptions.Left;
 			title.fontStyle = FontStyles.Bold;
 
-			ok.fontSize = 50;
-			ok.color = Color.black;
-			ok.font = GetDefaultFont();
-			ok.alignment = TextAlignmentOptions.Center;
-			ok.fontStyle = FontStyles.Bold;
+			cancel.fontSize = ok.fontSize = 50;
+			cancel.color = ok.color = Color.black;
+			cancel.font = ok.font = GetDefaultFont();
+			cancel.alignment = ok.alignment = TextAlignmentOptions.Center;
+			cancel.fontStyle = ok.fontStyle = FontStyles.Bold;
 			ok.text = "OK";
+			cancel.text = "Cancel";
 
 			info.fontSize = 50;
 			info.color = Color.black;
@@ -124,7 +133,7 @@ namespace BoplModSyncer.Utils
 
 			GetTitleText(panel).text = "Downloading!";
 
-			GameObject continueButtonObject = Object.Instantiate(GetButtonComp(panel).gameObject, panel.transform);
+			GameObject continueButtonObject = Object.Instantiate(GetOkButtonComp(panel).gameObject, panel.transform);
 			Button continueButton = continueButtonObject.GetComponent<Button>();
 
 			continueButton.onClick.AddListener(() => continueButton.gameObject.SetActive(false));

@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using UnityEngine;
 
 namespace BoplModSyncer.Utils
@@ -10,6 +11,15 @@ namespace BoplModSyncer.Utils
 	internal static class GameUtils
 	{
 		const string DataPrefix = "almafa64>";
+
+		public static void CancelSyncing(WebClient client = null)
+		{
+			Plugin.lastLobbyId.Value = 0;
+			client?.CancelAsync();
+			string path = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID);
+			try { Directory.Delete(path, true); }
+			catch (DirectoryNotFoundException) { }
+		}
 
 		public static void RestartGame(LocalModData[] toDeleteMods)
 		{

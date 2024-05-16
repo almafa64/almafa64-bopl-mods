@@ -79,7 +79,7 @@ namespace BoplModSyncer
 			TextMeshProUGUI infoText = PanelMaker.GetInfoText(installingPanel);
 			TextMeshProUGUI titleText = PanelMaker.GetTitleText(installingPanel);
 			TextMeshProUGUI textArea = PanelMaker.GetTextArea(installingPanel).GetComponent<TextMeshProUGUI>();
-			Button okButton = PanelMaker.GetButtonComp(installingPanel);
+			Button okButton = PanelMaker.GetOkButtonComp(installingPanel);
 
 			okButton.interactable = false;
 			PanelMaker.SetupCloseButton(installingPanel);
@@ -198,7 +198,7 @@ namespace BoplModSyncer
 
 			// close panel with button click
 			PanelMaker.SetupCloseButton(missingModsPanel);
-			PanelMaker.GetButtonComp(missingModsPanel).onClick.AddListener(() => InstallMods(toInstallMods, toDeleteMods, canvas));
+			PanelMaker.GetOkButtonComp(missingModsPanel).onClick.AddListener(() => InstallMods(toInstallMods, toDeleteMods, canvas));
 
 			void makeRow(int index, bool toDelete)
 			{
