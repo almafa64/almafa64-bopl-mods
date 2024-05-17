@@ -270,22 +270,32 @@ namespace BoplModSyncer
 
 		private static void SyncConfigs(Lobby lobby)
 		{
+			Directory.CreateDirectory(GameUtils.TmpConfigsPath);
+			Plugin.lastLobbyId.Value = lobby.Id;
+
 			foreach (KeyValuePair<string, LocalModData> mod in Plugin.mods)
 			{
 				ConfigFile config = mod.Value.Plugin.Instance.Config;
 
-				// turn off auto saving to keep users own settings in file
+				// copy user configs if they werent already
+				string newPath = Path.Combine(GameUtils.TmpConfigsPath, Path.GetFileName(config.ConfigFilePath));
+				try { File.Copy(config.ConfigFilePath, newPath); }
+				catch (IOException) { }
+
+				// turn off auto saving, so file isnt saved after every entry loop
 				bool saveOnSet = config.SaveOnConfigSet;
 				config.SaveOnConfigSet = false;
 
-				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
+				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{
-					ConfigEntryBase entry = entryDir.Value;
+					ConfigEntryBase entry = entryDic.Value;
+					// ToDo change to list (like in mods) so mod can leave lobby
 					string data = lobby.GetData(GameUtils.GenerateField($"{mod.Key}|{entry.Definition}"));
 					entry.SetSerializedValue(data);
 				}
 
 				config.SaveOnConfigSet = saveOnSet;
+				config.Save();
 			}
 		}
 
