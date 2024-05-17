@@ -75,6 +75,8 @@ namespace BoplModSyncer
 			AssetBundle bundle = AssetBundle.LoadFromStream(BaseUtils.GetResourceStream(PluginInfo.PLUGIN_NAME, "PanelBundle"));
 			genericPanel = bundle.LoadAsset<GameObject>("GenericPanel");
 			bundle.Unload(false);
+
+			Directory.CreateDirectory(GameUtils.MyCachePath);
 		}
 
 		private void Start()

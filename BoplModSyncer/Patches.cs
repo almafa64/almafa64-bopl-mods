@@ -115,8 +115,8 @@ namespace BoplModSyncer
 						// e.g. link: https://thunderstore.io/package/download/almafa64/AtomGrenade/1.0.3/
 						string[] linkParts = downloadingMod.Link.Split('/');
 						string name = string.Join("-", [linkParts[5], linkParts[6], linkParts[7]]) + ".zip";
-						string path = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID, name);
-						Directory.CreateDirectory(Path.GetDirectoryName(path));
+						string path = Path.Combine(GameUtils.DownloadedModsPath, name);
+						Directory.CreateDirectory(GameUtils.DownloadedModsPath);
 
 						Plugin.logger.LogInfo("downloading: " + path);
 						infoText.text = $"{downloadingMod.Guid} v{downloadingMod.Version}";

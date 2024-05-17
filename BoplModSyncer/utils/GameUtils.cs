@@ -12,12 +12,15 @@ namespace BoplModSyncer.Utils
 	{
 		const string DataPrefix = "almafa64>";
 
+		public static readonly string MyCachePath = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID);
+		public static readonly string DownloadedModsPath = Path.Combine(MyCachePath, "downloaded");
+		public static readonly string TmpConfigsPath = Path.Combine(MyCachePath, "configs_old");
+
 		public static void CancelSyncing(WebClient client = null)
 		{
 			Plugin.lastLobbyId.Value = 0;
 			client?.CancelAsync();
-			string path = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID);
-			try { Directory.Delete(path, true); }
+			try { Directory.Delete(DownloadedModsPath, true); }
 			catch (DirectoryNotFoundException) { }
 		}
 
