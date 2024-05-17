@@ -51,11 +51,16 @@ namespace BoplModSyncer
 				ModMismatch(lobby);                               // you dont have same mods as host
 		}
 
+		private static void LeaveLobby(string message = null)
+		{
+			SteamManager.instance.LeaveLobby();
+		}
+
 		private static void HostDoesntHaveSyncer(Lobby lobby)
 		{
 			Plugin.logger.LogWarning("host doesnt have syncer");
 
-			SteamManager.instance.LeaveLobby();
+			LeaveLobby();
 
 			// --- no host syncer panel ---
 
@@ -187,7 +192,7 @@ namespace BoplModSyncer
 			Plugin.logger.LogWarning("to delete:\n\t- " + string.Join("\n\t- ", toDeleteMods.Select(m => $"{m.Plugin.Metadata.GUID} {m.Plugin.Metadata.Version}")));
 
 			Plugin.lastLobbyId.Value = lobby.Id;
-			SteamManager.instance.LeaveLobby();
+			LeaveLobby("Missing mods");
 
 			// --- missing mods panel ---
 
