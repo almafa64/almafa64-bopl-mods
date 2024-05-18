@@ -53,6 +53,18 @@ namespace BoplModSyncer.Utils
 		public static Stream GetResourceStream(string namespaceName, string path) =>
 			Assembly.GetExecutingAssembly().GetManifestResourceStream($"{namespaceName}.{path}");
 
+		/// <summary>
+		/// <example>
+		/// <code>
+		/// Console.WriteLine(GetRelativePath("C:\\test\\subtest\\file.txt", "C:\\test\\"));
+		/// Console.WriteLine(GetRelativePath("C:\\another\\test2\\subtest2\\file.txt", "\\test2\\"));
+		/// // output: subtest\file.txt, subtest2\file.txt
+		/// </code>
+		/// </example>
+		/// </summary>
+		/// <param name="path">The full path</param>
+		/// <param name="relativeDirectory">The path to cut from <paramref name="path"/></param>
+		/// <returns></returns>
 		public static string GetRelativePath(string path, string relativeDirectory) =>
 			path.Substring(path.IndexOf(relativeDirectory) + relativeDirectory.Length);
 	}
