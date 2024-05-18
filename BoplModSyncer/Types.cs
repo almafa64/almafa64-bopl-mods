@@ -87,10 +87,10 @@ namespace BoplModSyncer
 
 	internal class ManifestJSON
 	{
-		public string name;
-		public string version_number;
-		public string website_url;
-		public string description;
-		public string[] dependencies;
+		public string name = null;
+		public string version_number = null;
+		public string website_url = null;
+		public string description = null;
+		public string[] dependencies = null;
 	}
 }
