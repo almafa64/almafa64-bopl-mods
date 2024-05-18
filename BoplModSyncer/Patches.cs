@@ -95,7 +95,7 @@ namespace BoplModSyncer
 				infoText.text = "Press OK to restart game";
 				titleText.text = "Downloading completed!";
 				okButton.interactable = true;
-				okButton.onClick.AddListener(() => GameUtils.RestartGame(toDeleteMods));
+				okButton.onClick.AddListener(() => GameUtils.RestartGameAfterDownload(toDeleteMods));
 			}
 
 			void downloadNext()
@@ -270,7 +270,7 @@ namespace BoplModSyncer
 
 		private static void SyncConfigs(Lobby lobby)
 		{
-			Directory.CreateDirectory(GameUtils.TmpConfigsPath);
+			Directory.CreateDirectory(GameUtils.OldConfigsPath);
 			Plugin.lastLobbyId.Value = lobby.Id;
 
 			foreach (KeyValuePair<string, LocalModData> mod in Plugin.mods)
@@ -278,7 +278,7 @@ namespace BoplModSyncer
 				ConfigFile config = mod.Value.Plugin.Instance.Config;
 
 				// copy user configs if they werent already
-				string newPath = Path.Combine(GameUtils.TmpConfigsPath, Path.GetFileName(config.ConfigFilePath));
+				string newPath = Path.Combine(GameUtils.OldConfigsPath, Path.GetFileName(config.ConfigFilePath));
 				try { File.Copy(config.ConfigFilePath, newPath); }
 				catch (IOException) { }
 

@@ -12,9 +12,18 @@ namespace BoplModSyncer.Utils
 	{
 		const string DataPrefix = "almafa64>";
 
-		public static readonly string MyCachePath = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID);
-		public static readonly string DownloadedModsPath = Path.Combine(MyCachePath, "downloaded");
-		public static readonly string TmpConfigsPath = Path.Combine(MyCachePath, "configs_old");
+		public static string MyCachePath { get; private set; }
+		public static string DownloadedModsPath { get; private set; }
+		public static string OldConfigsPath { get; private set; }
+		public static string OldPluginPath { get; private set; }
+
+		internal static void Init()
+		{
+			MyCachePath = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID);
+			DownloadedModsPath = Path.Combine(MyCachePath, "downloaded");
+			OldConfigsPath = Path.Combine(MyCachePath, "configs_old");
+			OldPluginPath = Path.Combine(MyCachePath, "plugins_old");
+		}
 
 		public static void CancelSyncing(WebClient client = null)
 		{
@@ -24,12 +33,17 @@ namespace BoplModSyncer.Utils
 			catch (DirectoryNotFoundException) { }
 		}
 
-		public static void RestartGame(LocalModData[] toDeleteMods)
+		public static void RestartGameAfterDownload(LocalModData[] toDeleteMods)
 		{
 			int gameId = Plugin.IsDemo ? 2494960 : 1686940;
 			int pid = Process.GetCurrentProcess().Id;
 			string guid = Plugin.plugin.Info.Metadata.GUID;
-			string path = Path.Combine(Paths.CachePath, "mod_installer_deleter.bat");
+			
+			string path = Path.Combine(MyCachePath, "mod_installer_deleter.bat");
+			string myCachePath = Path.GetFileName(MyCachePath);
+			string downloadPath = Path.GetFileName(DownloadedModsPath);
+			string oldPluginPath = Path.GetFileName(OldPluginPath);
+
 			string toDelete = ";";
 			if (toDeleteMods != null && toDeleteMods.Length > 0)
 			{
@@ -49,7 +63,7 @@ namespace BoplModSyncer.Utils
 			 */
 			File.WriteAllText(path, $"""
 				@echo off
-				cd BepInEx\cache 2>nul
+				cd BepInEx\cache\{Path.GetFileName(MyCachePath)} 2>nul
 				goto :start
 
 				:err_check
@@ -70,36 +84,35 @@ namespace BoplModSyncer.Utils
 				call :err_check
 
 				rem only copy mods if there is no copy already
-				if not exist "..\old_plugins" (
+				if not exist "{oldPluginPath}" (
 					echo\
 					echo [92mcopying old mods to new folder[0m
-					robocopy ..\plugins\ ..\old_plugins\ /e /ndl /nc /ns
+					robocopy ..\..\plugins\ {oldPluginPath}\ /e /ndl /nc /ns
 					call :err_check
 				)
 
 				echo\
 				echo [92mdeleting not needed mods[0m
-				for %%f in ({toDelete}) do del ..\plugins\%%f
+				for %%f in ({toDelete}) do del ..\..\plugins\%%f
 
 				call :err_check
 
 				echo\
 				echo [92mcopying downloaded dlls into mod folder[0m
-				rem for /r %%f in ({guid}\*.dll) do robocopy "%%~dpf " "..\plugins\%%~nf" "%%~nxf" /ndl /nc /ns
-				cd ..\plugins
-				for /r %%f in (..\cache\{guid}\*.zip) do (
+				cd ..\..\plugins
+				for /r %%f in (..\cache\{myCachePath}\{downloadPath}\*.zip) do (
 					md "%%~nf"
 					cd "%%~nf"
 					tar -xvf "%%f"
 					cd ..
 				)
-				cd ..\cache
+				cd ..\cache\{Path.GetFileName(MyCachePath)}
 
 				call :err_check
-				pause
+
 				echo\
 				echo [92mcleanup[0m
-				rmdir /s /q "{guid}"
+				rmdir /s /q "{downloadPath}"
 
 				call :err_check
 

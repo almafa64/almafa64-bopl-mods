@@ -76,6 +76,7 @@ namespace BoplModSyncer
 			genericPanel = bundle.LoadAsset<GameObject>("GenericPanel");
 			bundle.Unload(false);
 
+			GameUtils.Init();
 			Directory.CreateDirectory(GameUtils.MyCachePath);
 		}
 
