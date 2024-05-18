@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Text;
 
 namespace BoplModSyncer
 {
@@ -92,5 +93,10 @@ namespace BoplModSyncer
 		public string website_url = null;
 		public string description = null;
 		public string[] dependencies = null;
+	}
+
+	public static class TypeExnteders
+	{
+		public static StringBuilder RemoveLast(this StringBuilder sb) => sb.Remove(sb.Length - 1, 1);
 	}
 }

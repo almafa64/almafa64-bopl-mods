@@ -303,7 +303,7 @@ namespace BoplModSyncer
 		{
 			lobby.SetData(checksumField, Plugin.CHECKSUM);
 
-			StringBuilder sb = new();
+			StringBuilder modListBuilder = new();
 			foreach (KeyValuePair<string, LocalModData> modDir in Plugin.mods)
 			{
 				LocalModData mod = modDir.Value;
@@ -311,7 +311,7 @@ namespace BoplModSyncer
 				ConfigFile config = mod.Plugin.Instance.Config;
 
 				// guid,ver,link,hash
-				sb.Append(modDir.Key).Append(',')
+				modListBuilder.Append(modDir.Key).Append(',')
 					.Append(mod.Version).Append(',')
 					.Append(mod.Link).Append(',')
 					.Append(mod.Hash).Append('|');
@@ -324,8 +324,8 @@ namespace BoplModSyncer
 				}
 			}
 
-			if(sb.Length > 0) sb.Remove(sb.Length - 1, 1); // remove last '|'
-			lobby.SetData(hostModListField, sb.ToString());
+			if (modListBuilder.Length > 0) modListBuilder.RemoveLast(); // remove last '|'
+			lobby.SetData(hostModListField, modListBuilder.ToString());
 		}
 
 		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
