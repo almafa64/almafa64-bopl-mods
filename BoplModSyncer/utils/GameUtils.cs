@@ -124,6 +124,33 @@ namespace BoplModSyncer.Utils
 			Application.Quit();
 		}
 
+		public static void RestartGameAfterSync()
+		{
+			int gameId = Plugin.IsDemo ? 2494960 : 1686940;
+			int pid = Process.GetCurrentProcess().Id;
+			string path = Path.Combine(MyCachePath, "syncer.bat");
+
+			/**
+			 * 1. wait until game is closed
+			 * 2. start game
+			 */
+			File.WriteAllText(path, $"""
+				@echo off
+
+				rem wait for game to finish
+				:start
+				tasklist /fi "pid eq {pid}" /fo csv 2>nul | find /i "{pid}" > nul
+				if "%ERRORLEVEL%"=="0" goto start
+				set "errorlevel=0"
+
+				echo\
+				echo [91mRestarting game![0m
+				start "" steam://rungameid/{gameId}
+				""");
+			Process.Start(path);
+			Application.Quit();
+		}
+
 		public static string GenerateField(string key) => DataPrefix + key;
 
 		public static Manifest GetManifest(BepInEx.PluginInfo plugin)

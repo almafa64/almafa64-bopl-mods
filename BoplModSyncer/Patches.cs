@@ -20,6 +20,7 @@ namespace BoplModSyncer
 	{
 		private static readonly string checksumField = GameUtils.GenerateField("checksum");
 		private static readonly string hostModListField = GameUtils.GenerateField("modlist");
+		private static readonly string hostConfigListField = GameUtils.GenerateField("configlist");
 		private static readonly string memberHasSyncerField = GameUtils.GenerateField("syncer");
 
 		private static bool firstJoin = true;
@@ -163,6 +164,10 @@ namespace BoplModSyncer
 			// ToDo maybe make configs too now so game doesnt need to restart twice
 
 			string hostModListText = lobby.GetData(hostModListField);
+
+			Plugin.lastLobbyId.Value = lobby.Id;
+			LeaveLobby("Missing mods");
+
 			string[] hostMods = hostModListText.Split(['|'], System.StringSplitOptions.RemoveEmptyEntries);
 			OnlineModData[] toInstallMods = new OnlineModData[hostMods.Length];
 			int missingModsCount = 0;
@@ -190,9 +195,6 @@ namespace BoplModSyncer
 
 			Plugin.logger.LogWarning("missing:\n\t- " + string.Join("\n\t- ", toInstallMods.Select(m => $"{m.Guid} v{m.Version}")));
 			Plugin.logger.LogWarning("to delete:\n\t- " + string.Join("\n\t- ", toDeleteMods.Select(m => $"{m.Plugin.Metadata.GUID} {m.Plugin.Metadata.Version}")));
-
-			Plugin.lastLobbyId.Value = lobby.Id;
-			LeaveLobby("Missing mods");
 
 			// --- missing mods panel ---
 
@@ -270,8 +272,33 @@ namespace BoplModSyncer
 
 		private static void SyncConfigs(Lobby lobby)
 		{
+			string hostConfigListText = lobby.GetData(hostConfigListField);
+
+			Dictionary<string, Dictionary<string, string>> hostConfigs = [];
+			getHostConfigs();
+
+			void getHostConfigs()
+			{
+				// guid:entry_name1\tvalue1\nentry_name2\tvalue2\\
+				string[] modSplit = hostConfigListText.Split('\\');
+				foreach (string mod in modSplit)
+				{
+					string[] guidSplit = mod.Split([':'], 2);
+					string[] entriesSplit = guidSplit[1].Split('\n');
+
+					Dictionary<string, string> entries = [];
+					for (int i = 0; i < entriesSplit.Length; i++)
+					{
+						string[] entrySplit = entriesSplit[i].Split(['\t'], 2);
+						entries.Add(entrySplit[0], entrySplit[1]);
+					}
+					hostConfigs.Add(guidSplit[0], entries);
+				}
+			}
+
 			Directory.CreateDirectory(GameUtils.OldConfigsPath);
 			Plugin.lastLobbyId.Value = lobby.Id;
+			bool configsSynced = true;
 
 			foreach (KeyValuePair<string, LocalModData> mod in Plugin.mods)
 			{
@@ -286,17 +313,25 @@ namespace BoplModSyncer
 				bool saveOnSet = config.SaveOnConfigSet;
 				config.SaveOnConfigSet = false;
 
+				Dictionary<string, string> hostEntries = hostConfigs[mod.Key];
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{
 					ConfigEntryBase entry = entryDic.Value;
-					// ToDo change to list (like in mods) so mod can leave lobby
-					string data = lobby.GetData(GameUtils.GenerateField($"{mod.Key}|{entry.Definition}"));
-					entry.SetSerializedValue(data);
+					string value = hostEntries[entry.Definition.ToString()];
+
+					if (configsSynced && value != entry.GetSerializedValue())
+					{
+						configsSynced = false;
+						LeaveLobby("syncing configs");
+					}
+					if (!configsSynced) entry.SetSerializedValue(value);
 				}
 
 				config.SaveOnConfigSet = saveOnSet;
-				config.Save();
+				if(!configsSynced) config.Save();
 			}
+
+			if(!configsSynced) GameUtils.RestartGameAfterSync();
 		}
 
 		private static void OnHostJoin(Lobby lobby)
@@ -304,6 +339,7 @@ namespace BoplModSyncer
 			lobby.SetData(checksumField, Plugin.CHECKSUM);
 
 			StringBuilder modListBuilder = new();
+			StringBuilder configListBuilder = new();
 			foreach (KeyValuePair<string, LocalModData> modDir in Plugin.mods)
 			{
 				LocalModData mod = modDir.Value;
@@ -316,16 +352,25 @@ namespace BoplModSyncer
 					.Append(mod.Link).Append(',')
 					.Append(mod.Hash).Append('|');
 
+				if (config.Count == 0) continue;
+
+				// guid:entry_name1\tvalue1\nentry_name2\tvalue2\\
+				// \t, \n and \\ are blocked by ConfigDefinition so they can be used as a separator
+				configListBuilder.Append(modDir.Key).Append(':');
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDir in config)
 				{
-					// guid|full_name_of_entry: value
 					ConfigEntryBase entry = entryDir.Value;
-					lobby.SetData(GameUtils.GenerateField($"{modDir.Key}|{entry.Definition}"), entry.GetSerializedValue());
+					configListBuilder.Append(entry.Definition).Append('\t')
+						.Append(entry.GetSerializedValue()).Append('\n');
 				}
+				configListBuilder.RemoveLast().Append('\\');
 			}
 
 			if (modListBuilder.Length > 0) modListBuilder.RemoveLast(); // remove last '|'
 			lobby.SetData(hostModListField, modListBuilder.ToString());
+
+			if (configListBuilder.Length > 0) configListBuilder.RemoveLast(); // remove last '\\'
+			lobby.SetData(hostConfigListField, configListBuilder.ToString());
 		}
 
 		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
