@@ -357,7 +357,15 @@ namespace BoplModSyncer
 				if (!configsSynced) config.Save();
 			}
 
-			if (!configsSynced) GameUtils.RestartGameAfterSync();
+			if (configsSynced) return;
+
+			// --- restart panel ---
+
+			Transform canvas = PanelUtils.GetCanvas();
+			GameObject restartPanel = Object.Instantiate(Plugin.restartPanel, canvas);
+			PanelMaker.SetupCloseButton(restartPanel);
+			Object.Destroy(PanelMaker.GetCancelButtonComp(restartPanel).gameObject);
+			PanelMaker.GetOkButtonComp(restartPanel).onClick.AddListener(() => GameUtils.RestartGameAfterSync());
 		}
 
 		private static void OnHostJoin(Lobby lobby)
