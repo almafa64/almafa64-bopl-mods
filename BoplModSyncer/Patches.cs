@@ -29,14 +29,14 @@ namespace BoplModSyncer
 		{
 			if (SteamManager.LocalPlayerIsLobbyOwner)
 			{
-				if (firstJoin && Plugin.lastLobbyId.Value != 0) // rejoining lobby you left
+				if (firstJoin && Plugin.lastLobbyId.Value != 0)   // rejoin lobby you left
 				{
-					Plugin.logger.LogWarning("rejoining: " + Plugin.lastLobbyId.Value);
+					Plugin.logger.LogMessage("rejoining: " + Plugin.lastLobbyId.Value);
 					new Traverse(SteamManager.instance).Method("TryJoinLobby", Plugin.lastLobbyId.Value).GetValue();
 					Plugin.lastLobbyId.Value = 0;
 				}
+				else OnHostJoin(lobby);                           // you are host
 
-				OnHostJoin(lobby);                                // you are host
 				return;
 			}
 
@@ -46,7 +46,7 @@ namespace BoplModSyncer
 
 			if (lobbyHash == Plugin.CHECKSUM)
 				SyncConfigs(lobby);                               // you have same mods as host
-			else if (lobbyHash == null || lobbyHash == "")
+			else if (string.IsNullOrEmpty(lobbyHash))
 				HostDoesntHaveSyncer(lobby);                      // host didnt install syncer
 			else
 				ModMismatch(lobby);                               // you dont have same mods as host
@@ -55,13 +55,12 @@ namespace BoplModSyncer
 		private static void LeaveLobby(string message = null)
 		{
 			SteamManager.instance.LeaveLobby();
+			Plugin.logger.LogWarning("Left lobby because: '" + message + "'");
 		}
 
 		private static void HostDoesntHaveSyncer(Lobby lobby)
 		{
-			Plugin.logger.LogWarning("host doesnt have syncer");
-
-			LeaveLobby();
+			LeaveLobby("host doesnt have syncer");
 
 			// --- no host syncer panel ---
 
@@ -168,6 +167,7 @@ namespace BoplModSyncer
 			Plugin.lastLobbyId.Value = lobby.Id;
 			LeaveLobby("Missing mods");
 
+			// guid,ver,link,hash|
 			string[] hostMods = hostModListText.Split(['|'], System.StringSplitOptions.RemoveEmptyEntries);
 			OnlineModData[] toInstallMods = new OnlineModData[hostMods.Length];
 			int missingModsCount = 0;
