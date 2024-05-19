@@ -55,7 +55,7 @@ namespace BoplTranslator
 		{
 			if (name == "MainMenu")
 			{
-				// dont need to create selector if there is no custom language
+				// dont create selector if there is no custom language
 				if (LanguagePatch.languages.Count == 0)
 				{
 					if ((int)Settings.Get().Language > Utils.MaxOfEnum<Language>()) Settings.Get().Language = 0;
@@ -148,7 +148,7 @@ namespace BoplTranslator
 			if (index != -1)
 			{
 				OptionIndex = index;
-				langMenu.GetComponent<LanguageMenu>().SetLanguage(index + LanguagePatch.MaxOGLanguage + 1);
+				langMenu.GetComponent<LanguageMenu>().SetLanguage(index + LanguagePatch.OGLanguagesCount + 1);
 				Plugin.logger.LogInfo($"Found last used language \"{Plugin.lastCustomLanguageCode.Value}\"");
 			}
 			else
@@ -156,7 +156,6 @@ namespace BoplTranslator
 				langMenu.GetComponent<LanguageMenu>().SetLanguage((int)Language.EN);
 				OptionIndex = 0;
 				Plugin.lastCustomLanguageCode.Value = languageNames[0];
-				Plugin.config.Save();
 				Plugin.logger.LogError($"Couldn't find last used language \"{Plugin.lastCustomLanguageCode.Value}\"");
 			}
 		}
@@ -164,10 +163,10 @@ namespace BoplTranslator
 		public void Init()
 		{
 			OptionIndex = (int)Settings.Get().Language;
-			if (OptionIndex <= LanguagePatch.MaxOGLanguage) OptionIndex = 0;
+			if (OptionIndex <= LanguagePatch.OGLanguagesCount) OptionIndex = 0;
 			else
 			{
-				OptionIndex = OptionIndex - LanguagePatch.MaxOGLanguage - 1;
+				OptionIndex -= LanguagePatch.OGLanguagesCount + 1;
 				if (OptionIndex >= languageNames.Count)
 				{
 					Plugin.logger.LogWarning($"Language number {OptionIndex} was selected, but no language with that number exists");
@@ -218,15 +217,13 @@ namespace BoplTranslator
 
 		public void Click()
 		{
-			if (InputActive && isActiveAndEnabled)
-			{
-				langMenu.GetComponent<LanguageMenu>().SetLanguage(LanguagePatch.MaxOGLanguage + 1 + OptionIndex);
-				GameObject.Find("mainMenu_leaveACTIVE").GetComponent<MainMenu>().EnableAll();
-				langMenu.GetComponent<MainMenu>().DisableAll();
-				AudioManager.Get().Play("return3");
-				Plugin.lastCustomLanguageCode.Value = languageNames[OptionIndex];
-				Plugin.config.Save();
-			}
+			if (!InputActive || !isActiveAndEnabled) return;
+
+			langMenu.GetComponent<LanguageMenu>().SetLanguage(LanguagePatch.OGLanguagesCount + 1 + OptionIndex);
+			GameObject.Find("mainMenu_leaveACTIVE").GetComponent<MainMenu>().EnableAll();
+			langMenu.GetComponent<MainMenu>().DisableAll();
+			AudioManager.Get().Play("return3");
+			Plugin.lastCustomLanguageCode.Value = languageNames[OptionIndex];
 		}
 	}
 }
