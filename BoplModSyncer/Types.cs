@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using BepInEx.Configuration;
+using System.Collections.ObjectModel;
 using System.Text;
 
 namespace BoplModSyncer
@@ -98,5 +99,7 @@ namespace BoplModSyncer
 	public static class TypeExnteders
 	{
 		public static StringBuilder RemoveLast(this StringBuilder sb) => sb.Remove(sb.Length - 1, 1);
+
+		public static string MyToString(this ConfigDefinition def) => def.Section + "=" + def.Key;
 	}
 }
