@@ -56,7 +56,7 @@ namespace BoplModSyncer
 		private static void LeaveLobby(string message = null)
 		{
 			SteamManager.instance.LeaveLobby();
-			Plugin.logger.LogWarning("Left lobby because: '" + message + "'");
+			Plugin.logger.LogWarning($"Left lobby because: '{message}'");
 		}
 
 		private static void HostDoesntHaveSyncer(Lobby lobby)
@@ -110,6 +110,8 @@ namespace BoplModSyncer
 			okButton.interactable = false;
 			textArea.color = UnityEngine.Color.red;
 
+			Directory.CreateDirectory(GameUtils.DownloadedModsPath);
+
 			void downloadComplete()
 			{
 				infoText.text = "Press OK to restart game";
@@ -127,7 +129,6 @@ namespace BoplModSyncer
 				}
 
 				OnlineModData downloadingMod = modsToDownload.Dequeue();
-
 				WebClient client = new();
 
 				client.OpenReadCompleted += async (sender, args) =>
@@ -141,9 +142,8 @@ namespace BoplModSyncer
 						string[] linkParts = downloadingMod.Link.Split('/');
 						string name = string.Join("-", [linkParts[5], linkParts[6], linkParts[7]]) + ".zip";
 						string path = Path.Combine(GameUtils.DownloadedModsPath, name);
-						Directory.CreateDirectory(GameUtils.DownloadedModsPath);
 
-						Plugin.logger.LogInfo("downloading: " + path);
+						Plugin.logger.LogInfo($"downloading: {name}");
 						infoText.text = $"{downloadingMod.Guid} v{downloadingMod.Version}";
 
 						using FileStream file = File.Create(path);
@@ -152,11 +152,14 @@ namespace BoplModSyncer
 							progressBar.value = value;
 							percentageText.text = $"{value}%";
 						}));
+
+						downloadNext();
 					}
 					catch (System.Exception ex)
 					{
-						Plugin.logger.LogError("error while downloading: " + ex);
+						Plugin.logger.LogError($"error while downloading: {ex}");
 						textArea.text = ex.Message;
+
 						Button continueButton = installingPanel.transform.Find("Continue Button").GetComponent<Button>();
 						continueButton.gameObject.SetActive(true);
 						continueButton.onClick.AddListener(() =>
@@ -165,23 +168,18 @@ namespace BoplModSyncer
 							textArea.text = "";
 							downloadNext();
 						});
-						return;
 					}
-					finally
-					{
-						client.Dispose();
-					}
-					downloadNext();
+					finally { client.Dispose(); }
 				};
+
 				client.OpenReadAsync(new System.Uri(downloadingMod.Link));
 			}
+
 			downloadNext();
 		}
 
 		private static void ModMismatch(Lobby lobby)
 		{
-			// ToDo maybe make configs too now so game doesnt need to restart twice
-
 			string hostModListText = lobby.GetData(hostModListField);
 			Dictionary<string, Dictionary<string, string[]>> hostConfigs = GetHostConfigs(lobby);
 
@@ -361,7 +359,7 @@ namespace BoplModSyncer
 					// turn off auto saving, so file isnt saved after every entry loop
 					config.SaveOnConfigSet = false;
 
-					foreach(KeyValuePair<ConfigEntryBase, string> entry in newConfigs[mod.Key])
+					foreach (KeyValuePair<ConfigEntryBase, string> entry in newConfigs[mod.Key])
 					{
 						entry.Key.SetSerializedValue(entry.Value);
 					}
@@ -425,16 +423,15 @@ namespace BoplModSyncer
 			{
 				// wait needed to give time to member to set memberHasSyncerField
 				yield return new WaitForSeconds(1);
-				if (lobby.GetMemberData(friend, memberHasSyncerField) != "1")
-				{
+
+				if (lobby.GetMemberData(friend, memberHasSyncerField) == "1") yield break;
+
 					int playerIndex = SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id);
-					if (playerIndex != -1)
-					{
+				if (playerIndex == -1) yield break;
+
 						SteamManager.instance.KickPlayer(playerIndex);
 						Plugin.logger.LogWarning($"Kicked \"{friend.Name}\" because he doesnt has syncer!");
 					}
-				}
-			}
 			Plugin.plugin.StartCoroutine(waitForField());
 		}
 

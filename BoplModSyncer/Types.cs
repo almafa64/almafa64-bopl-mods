@@ -1,6 +1,11 @@
 ﻿using BepInEx.Configuration;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
+using TMPro;
+using UnityEngine.EventSystems;
+using UnityEngine;
+using System;
 
 namespace BoplModSyncer
 {
@@ -101,5 +106,23 @@ namespace BoplModSyncer
 		public static StringBuilder RemoveLast(this StringBuilder sb) => sb.Remove(sb.Length - 1, 1);
 
 		public static string MyToString(this ConfigDefinition def) => def.Section + "=" + def.Key;
+	}
+
+	internal class LinkClicker : MonoBehaviour, IPointerClickHandler
+	{
+		public List<TextMeshProUGUI> textMeshes = [];
+		public void OnPointerClick(PointerEventData eventData)
+		{
+			foreach (TextMeshProUGUI textMesh in textMeshes)
+			{
+				// check if there is a link under clicking position
+				int linkIndex = TMP_TextUtilities.FindIntersectingLink(textMesh, eventData.position, Camera.current);
+				if (linkIndex == -1) continue;
+
+				TMP_LinkInfo linkInfo = textMesh.textInfo.linkInfo[linkIndex];
+				Application.OpenURL(linkInfo.GetLinkID());
+				break;
+			}
+		}
 	}
 }
