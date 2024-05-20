@@ -64,10 +64,7 @@ namespace BoplModSyncer
 			LeaveLobby("host doesnt have syncer");
 
 			// --- no host syncer panel ---
-
-			Transform canvas = PanelUtils.GetCanvas();
-			GameObject noSyncerPanel = Object.Instantiate(Plugin.noSyncerPanel, canvas);
-			PanelMaker.SetupCloseButton(noSyncerPanel);
+			PanelMaker.InstantiatePanel(Plugin.noSyncerPanel);
 		}
 
 		private static Dictionary<string, Dictionary<string, string[]>> GetHostConfigs(Lobby lobby)
@@ -94,7 +91,7 @@ namespace BoplModSyncer
 			return hostConfigs;
 		}
 
-		private static void InstallMods(OnlineModData[] toInstallMods, LocalModData[] toDeleteMods, Transform canvas)
+		private static void InstallMods(OnlineModData[] toInstallMods, LocalModData[] toDeleteMods)
 		{
 			Queue<OnlineModData> modsToDownload = new();
 			foreach (OnlineModData mod in toInstallMods)
@@ -102,23 +99,21 @@ namespace BoplModSyncer
 				if (mod.Link != "" && mod.DoInstall) modsToDownload.Enqueue(mod);
 			}
 
-			GameObject installingPanel = Object.Instantiate(Plugin.installingPanel, canvas);
+			GameObject installingPanel = PanelMaker.InstantiatePanel(Plugin.installingPanel);
 
-			Slider progressBar = PanelMaker.GetProgressBar(installingPanel).GetComponent<Slider>();
+			Slider progressBar = PanelMaker.GetProgressBarComp();
 			TextMeshProUGUI percentageText = installingPanel.transform.Find("ProgressBar/Percentage").GetComponent<TextMeshProUGUI>();
-			TextMeshProUGUI infoText = PanelMaker.GetInfoText(installingPanel);
-			TextMeshProUGUI titleText = PanelMaker.GetTitleText(installingPanel);
-			TextMeshProUGUI textArea = PanelMaker.GetTextArea(installingPanel).GetComponent<TextMeshProUGUI>();
-			Button okButton = PanelMaker.GetOkButtonComp(installingPanel);
+			TextMeshProUGUI infoText = PanelMaker.GetInfoText();
+			TextMeshProUGUI textArea = PanelMaker.GetTextAreaText();
+			Button okButton = PanelMaker.GetOkButtonComp();
 
 			okButton.interactable = false;
-			PanelMaker.SetupCloseButton(installingPanel);
 			textArea.color = UnityEngine.Color.red;
 
 			void downloadComplete()
 			{
 				infoText.text = "Press OK to restart game";
-				titleText.text = "Downloading completed!";
+				PanelMaker.GetTitleText().text = "Downloading completed!";
 				okButton.interactable = true;
 				okButton.onClick.AddListener(() => GameUtils.RestartGameAfterDownload(toDeleteMods));
 			}
@@ -243,15 +238,12 @@ namespace BoplModSyncer
 			Plugin.logger.LogWarning("to delete:\n\t- " + string.Join("\n\t- ", toDeleteMods.Select(m => $"{m.Plugin.Metadata.GUID} {m.Plugin.Metadata.Version}")));
 
 			// --- missing mods panel ---
+			GameObject missingModsPanel = PanelMaker.InstantiatePanel(
+				Plugin.missingModsPanel,
+				() => InstallMods(toInstallMods, toDeleteMods));
 
-			Transform canvas = PanelUtils.GetCanvas();
-			GameObject missingModsPanel = Object.Instantiate(Plugin.missingModsPanel, canvas);
 			Transform row = missingModsPanel.transform.Find("NeededModList/Viewport/Content/tmprow");
 			LinkClicker linkClicker = missingModsPanel.AddComponent<LinkClicker>();
-
-			// close panel with button click
-			PanelMaker.SetupCloseButton(missingModsPanel);
-			PanelMaker.GetOkButtonComp(missingModsPanel).onClick.AddListener(() => InstallMods(toInstallMods, toDeleteMods, canvas));
 
 			void makeRow(int index, bool toDelete)
 			{
@@ -360,12 +352,8 @@ namespace BoplModSyncer
 			if (configsSynced) return;
 
 			// --- restart panel ---
-
-			Transform canvas = PanelUtils.GetCanvas();
-			GameObject restartPanel = Object.Instantiate(Plugin.restartPanel, canvas);
-			PanelMaker.SetupCloseButton(restartPanel);
+			GameObject restartPanel = PanelMaker.InstantiatePanel(Plugin.restartPanel, GameUtils.RestartGameAfterSync);
 			Object.Destroy(PanelMaker.GetCancelButtonComp(restartPanel).gameObject);
-			PanelMaker.GetOkButtonComp(restartPanel).onClick.AddListener(() => GameUtils.RestartGameAfterSync());
 		}
 
 		private static void OnHostJoin(Lobby lobby)
