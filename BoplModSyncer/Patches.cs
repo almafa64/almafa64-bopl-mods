@@ -34,7 +34,6 @@ namespace BoplModSyncer
 				{
 					Plugin.logger.LogMessage("rejoining: " + Plugin.lastLobbyId.Value);
 					new Traverse(SteamManager.instance).Method("TryJoinLobby", Plugin.lastLobbyId.Value).GetValue();
-					Plugin.lastLobbyId.Value = 0;
 				}
 				else OnHostJoin(lobby);                           // you are host
 
@@ -44,6 +43,7 @@ namespace BoplModSyncer
 			lobby.SetMemberData(memberHasSyncerField, "1");
 			string lobbyHash = lobby.GetData(checksumField);
 			firstJoin = false;
+			Plugin.lastLobbyId.Value = 0;
 
 			if (lobbyHash == Plugin.CHECKSUM)
 				SyncConfigs(lobby);                               // you have same mods as host
@@ -321,7 +321,6 @@ namespace BoplModSyncer
 			Dictionary<string, Dictionary<string, string[]>> hostConfigs = GetHostConfigs(lobby);
 
 			Directory.CreateDirectory(GameUtils.OldConfigsPath);
-			Plugin.lastLobbyId.Value = lobby.Id;
 			bool configsSynced = true;
 
 			foreach (KeyValuePair<string, LocalModData> mod in Plugin.mods)
@@ -348,6 +347,7 @@ namespace BoplModSyncer
 					if (configsSynced && value != entryDic.Value.GetSerializedValue())
 					{
 						configsSynced = false;
+						Plugin.lastLobbyId.Value = lobby.Id;
 						LeaveLobby("syncing configs");
 					}
 					if (!configsSynced) entry.SetSerializedValue(value);
