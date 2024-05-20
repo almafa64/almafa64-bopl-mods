@@ -311,24 +311,17 @@ namespace BoplModSyncer
 		private static void SyncConfigs(Lobby lobby)
 		{
 			Dictionary<string, Dictionary<string, string[]>> hostConfigs = GetHostConfigs(lobby);
+			Dictionary<string, List<KeyValuePair<ConfigEntryBase, string>>> newConfigs = [];
 
-			Directory.CreateDirectory(GameUtils.OldConfigsPath);
 			bool configsSynced = true;
 
 			foreach (KeyValuePair<string, LocalModData> mod in Plugin.mods)
 			{
 				ConfigFile config = mod.Value.Plugin.Instance.Config;
 
-				// copy user configs if they werent already
-				string newPath = Path.Combine(GameUtils.OldConfigsPath, Path.GetFileName(config.ConfigFilePath));
-				try { File.Copy(config.ConfigFilePath, newPath); }
-				catch (IOException) { }
-
-				// turn off auto saving, so file isnt saved after every entry loop
-				bool saveOnSet = config.SaveOnConfigSet;
-				config.SaveOnConfigSet = false;
-
+				List<KeyValuePair<ConfigEntryBase, string>> newConfigEntries = [];
 				Dictionary<string, string[]> hostEntries = hostConfigs[mod.Key];
+
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{
 					ConfigEntryBase entry = entryDic.Value;
@@ -336,24 +329,48 @@ namespace BoplModSyncer
 
 					// dont do anything until there is a difference in a config
 					// after that set every config then restart
-					if (configsSynced && value != entryDic.Value.GetSerializedValue())
+					if (configsSynced && value != entry.GetSerializedValue())
 					{
 						configsSynced = false;
 						Plugin.lastLobbyId.Value = lobby.Id;
 						LeaveLobby("syncing configs");
 					}
-					if (!configsSynced) entry.SetSerializedValue(value);
+
+					if (!configsSynced) newConfigEntries.Add(new(entry, value));
 				}
 
-				config.SaveOnConfigSet = saveOnSet;
-				if (!configsSynced) config.Save();
+				if (!configsSynced) newConfigs.Add(mod.Key, newConfigEntries);
 			}
 
 			if (configsSynced) return;
 
 			// --- restart panel ---
-			GameObject restartPanel = PanelMaker.InstantiatePanel(Plugin.restartPanel, GameUtils.RestartGameAfterSync);
-			Object.Destroy(PanelMaker.GetCancelButtonComp(restartPanel).gameObject);
+			GameObject restartPanel = PanelMaker.InstantiatePanel(Plugin.restartPanel, () =>
+			{
+				Directory.CreateDirectory(GameUtils.OldConfigsPath);
+
+				foreach (KeyValuePair<string, LocalModData> mod in Plugin.mods)
+				{
+					ConfigFile config = mod.Value.Plugin.Instance.Config;
+
+					// copy user configs if they werent already
+					string newPath = Path.Combine(GameUtils.OldConfigsPath, Path.GetFileName(config.ConfigFilePath));
+					try { File.Copy(config.ConfigFilePath, newPath); }
+					catch (IOException) { }
+
+					// turn off auto saving, so file isnt saved after every entry loop
+					config.SaveOnConfigSet = false;
+
+					foreach(KeyValuePair<ConfigEntryBase, string> entry in newConfigs[mod.Key])
+					{
+						entry.Key.SetSerializedValue(entry.Value);
+					}
+
+					config.Save();
+				}
+
+				GameUtils.RestartGameAfterSync();
+			});
 		}
 
 		private static void OnHostJoin(Lobby lobby)
