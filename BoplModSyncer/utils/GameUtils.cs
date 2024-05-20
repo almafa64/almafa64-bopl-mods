@@ -143,7 +143,7 @@ namespace BoplModSyncer.Utils
 				if "%ERRORLEVEL%"=="0" goto start
 				set "errorlevel=0"
 
-				timeout 1
+				timeout 2
 
 				echo\
 				echo [91mRestarting game![0m
