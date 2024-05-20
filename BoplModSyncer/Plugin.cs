@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using BoplModSyncer.Utils;
 using HarmonyLib;
+using Steamworks;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -22,7 +23,7 @@ namespace BoplModSyncer
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
 		public const string THUNDERSTORE_BOPL_MODS = "https://thunderstore.io/c/bopl-battle/api/v1/package";
 
-		internal static readonly Dictionary<string, LocalModData> _mods = [];
+		private static readonly Dictionary<string, LocalModData> _mods = [];
 		public static readonly ReadOnlyDictionary<string, LocalModData> mods = new(_mods);
 		public static readonly bool IsDemo = Path.GetFileName(Paths.GameRootPath) == "Bopl Battle Demo";
 
@@ -77,6 +78,11 @@ namespace BoplModSyncer
 			harmony.Patch(
 				AccessTools.Method(typeof(SteamManager), "OnLobbyMemberJoinedCallback"),
 				postfix: new(typeof(Patches), nameof(Patches.OnLobbyMemberJoinedCallback_Postfix))
+			);
+
+			harmony.Patch(
+				AccessTools.Method("Steamworks.ISteamMatchmaking:JoinLobby", [typeof(SteamId)]),
+				prefix: new(typeof(Patches), nameof(Patches.JoinLobby_Prefix))
 			);
 
 			AssetBundle bundle = AssetBundle.LoadFromStream(BaseUtils.GetResourceStream(PluginInfo.PLUGIN_NAME, "PanelBundle"));

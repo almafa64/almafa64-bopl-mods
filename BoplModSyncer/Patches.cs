@@ -420,5 +420,11 @@ namespace BoplModSyncer
 			}
 			Plugin.plugin.StartCoroutine(waitForField());
 		}
+
+		internal static void JoinLobby_Prefix()
+		{
+			// emulate clicking cancel button
+			if (PanelMaker.currentPanel != null) PanelMaker.GetCancelButtonComp().onClick.Invoke();
+		}
 	}
 }
