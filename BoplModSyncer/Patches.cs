@@ -67,30 +67,6 @@ namespace BoplModSyncer
 			PanelMaker.InstantiatePanel(Plugin.noSyncerPanel);
 		}
 
-		private static Dictionary<string, Dictionary<string, string[]>> GetHostConfigs(Lobby lobby)
-		{
-			string hostConfigListText = lobby.GetData(hostConfigListField);
-			Dictionary<string, Dictionary<string, string[]>> hostConfigs = [];
-
-			// guid:entry_name1\ttype1\tvalue1\nentry_name2\ttype2\tvalue2\\
-			string[] modSplit = hostConfigListText.Split('\\');
-			foreach (string mod in modSplit)
-			{
-				string[] guidSplit = mod.Split([':'], 2);
-				string[] entriesSplit = guidSplit[1].Split('\n');
-				Dictionary<string, string[]> entries = [];
-
-				foreach (string entry in entriesSplit)
-				{
-					string[] entrySplit = entry.Split(['\t'], 3);
-					entries.Add(entrySplit[0], [entrySplit[1], entrySplit[2]]);
-				}
-
-				hostConfigs.Add(guidSplit[0], entries);
-			}
-			return hostConfigs;
-		}
-
 		private static void InstallMods(OnlineModData[] toInstallMods, LocalModData[] toDeleteMods)
 		{
 			Queue<OnlineModData> modsToDownload = new();
@@ -181,7 +157,7 @@ namespace BoplModSyncer
 		private static void ModMismatch(Lobby lobby)
 		{
 			string hostModListText = lobby.GetData(hostModListField);
-			Dictionary<string, Dictionary<string, string[]>> hostConfigs = GetHostConfigs(lobby);
+			string hostConfigListText = lobby.GetData(hostConfigListField);
 
 			Plugin.lastLobbyId.Value = lobby.Id;
 			LeaveLobby("Missing mods");
@@ -191,7 +167,7 @@ namespace BoplModSyncer
 			{
 				if (method.Name != "Bind") continue;
 				ParameterInfo[] pInfos = method.GetParameters();
-				if (pInfos[0].ParameterType == typeof(string) && pInfos[3].ParameterType == typeof(ConfigDescription))
+				if (pInfos[0].ParameterType == typeof(ConfigDefinition))
 				{
 					bindMethod = method;
 					break;
@@ -202,20 +178,20 @@ namespace BoplModSyncer
 			string[] hostMods = hostModListText.Split(['|'], System.StringSplitOptions.RemoveEmptyEntries);
 			OnlineModData[] toInstallMods = new OnlineModData[hostMods.Length];
 			int missingModsCount = 0;
+			Dictionary<string, HostConfigEntry[]> hostConfigs = GameUtils.GetHostConfigs(hostConfigListText);
+
 			foreach (string hostMod in hostMods)
 			{
 				string[] datas = hostMod.Split(',');
 				OnlineModData modData = new(datas[0], datas[1], datas[2], datas[3]);
 
-				Dictionary<string, string[]> configEntries = hostConfigs[modData.Guid];
+				HostConfigEntry[] configEntries = hostConfigs[modData.Guid];
 				ConfigFile config = new(Path.Combine(Paths.ConfigPath, modData.Guid + ".cfg"), true);
-				
-				foreach (KeyValuePair<string, string[]> entry in configEntries)
+
+				foreach (HostConfigEntry entry in configEntries)
 				{
-					string[] entrySplit = entry.Key.Split('=');
-					object configEntry = bindMethod.MakeGenericMethod(System.Type.GetType(entry.Value[0]))
-						.Invoke(config, [entrySplit[0], entrySplit[1], 0, null]);
-					(configEntry as ConfigEntryBase).SetSerializedValue(entry.Value[1]);
+					object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, 0, null]);
+					(configEntry as ConfigEntryBase).SetSerializedValue(entry.Value);
 				}
 
 				config.Save();
@@ -308,7 +284,7 @@ namespace BoplModSyncer
 
 		private static void SyncConfigs(Lobby lobby)
 		{
-			Dictionary<string, Dictionary<string, string[]>> hostConfigs = GetHostConfigs(lobby);
+			Dictionary<string, HostConfigEntry[]> hostConfigs = GameUtils.GetHostConfigs(lobby.GetData(hostConfigListField));
 			Dictionary<string, List<KeyValuePair<ConfigEntryBase, string>>> newConfigs = [];
 
 			bool configsSynced = true;
@@ -318,12 +294,19 @@ namespace BoplModSyncer
 				ConfigFile config = mod.Value.Plugin.Instance.Config;
 
 				List<KeyValuePair<ConfigEntryBase, string>> newConfigEntries = [];
-				Dictionary<string, string[]> hostEntries = hostConfigs[mod.Key];
+				HostConfigEntry[] hostEntries = hostConfigs[mod.Key];
 
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{
 					ConfigEntryBase entry = entryDic.Value;
-					string value = hostEntries[entryDic.Key.MyToString()][1];
+
+					string value = "";
+					foreach (HostConfigEntry hostEntry in hostEntries)
+					{
+						if (!hostEntry.Definition.Equals(entry.Definition)) continue;
+						value = hostEntry.Value;
+						break;
+					}
 
 					// dont do anything until there is a difference in a config
 					// after that set every config then restart
@@ -397,7 +380,7 @@ namespace BoplModSyncer
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{
 					ConfigEntryBase entry = entryDic.Value;
-					
+
 					// get short type name if its built in, else full name with assembly
 					string type = entry.SettingType.FullName;
 					if (System.Type.GetType(type) == null) type = entry.SettingType.AssemblyQualifiedName;
@@ -426,12 +409,12 @@ namespace BoplModSyncer
 
 				if (lobby.GetMemberData(friend, memberHasSyncerField) == "1") yield break;
 
-					int playerIndex = SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id);
+				int playerIndex = SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id);
 				if (playerIndex == -1) yield break;
 
-						SteamManager.instance.KickPlayer(playerIndex);
-						Plugin.logger.LogWarning($"Kicked \"{friend.Name}\" because he doesnt has syncer!");
-					}
+				SteamManager.instance.KickPlayer(playerIndex);
+				Plugin.logger.LogWarning($"Kicked \"{friend.Name}\" because he doesnt has syncer!");
+			}
 			Plugin.plugin.StartCoroutine(waitForField());
 		}
 

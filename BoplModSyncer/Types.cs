@@ -71,6 +71,13 @@ namespace BoplModSyncer
 			$"name: '{Plugin.Metadata.Name}', version: '{Version}', link: '{Link}', guid: '{Guid}', hash: '{Hash}'";
 	}
 
+	public struct HostConfigEntry(ConfigDefinition definition, Type type, string value)
+	{
+		internal Type Type { get; private set; } = type;
+		internal string Value { get; private set; } = value;
+		internal ConfigDefinition Definition { get; private set; } = definition;
+	}
+
 	public class Manifest
 	{
 		public string Name { get; private set; }

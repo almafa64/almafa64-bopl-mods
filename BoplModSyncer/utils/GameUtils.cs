@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -176,6 +177,30 @@ namespace BoplModSyncer.Utils
 				}
 			}
 			return null;
+		}
+
+		/// <param name="hostConfigListText">format: <c>guid1:entry_name1\ttype1\tvalue1\nentry_name2\ttype2\tvalue2\\</c></param>
+		public static Dictionary<string, HostConfigEntry[]> GetHostConfigs(string hostConfigListText)
+		{
+			Dictionary<string, HostConfigEntry[]> hostConfigs = [];
+
+			foreach (string mod in hostConfigListText.Split('\\'))
+			{
+				string[] guidSplit = mod.Split([':'], 2);
+				string[] configSplit = guidSplit[1].Split('\n');
+				HostConfigEntry[] hostEntries = new HostConfigEntry[configSplit.Length];
+
+				for (int i = 0; i < configSplit.Length; i++)
+				{
+					string[] entrySplit = configSplit[i].Split(['\t'], 3);
+					string[] nameSplit = entrySplit[0].Split(['='], 2);
+					hostEntries[i] = new(new(nameSplit[0], nameSplit[1]), Type.GetType(entrySplit[1]), entrySplit[2]);
+				}
+
+				hostConfigs.Add(guidSplit[0], hostEntries);
+			}
+
+			return hostConfigs;
 		}
 	}
 }
