@@ -23,19 +23,35 @@ delete_tree(f"{old_name}/obj")
 delete_tree(f"{old_name}/bin")
 shutil.copytree(old_name, name)
 
-for p in os.listdir(name):
-	p = f"{name}/{p}"
+def replace_names(path: str):
+	global name, old_name, old_desc, desc
 
-	if old_name in p:
-		tmp = p.replace(old_name, name)
-		os.rename(p, tmp)
-		p = tmp
-	
-	proj = p.endswith(".csporj")
+	if path.endswith("thunderstore"):
+		os.remove(f"{path}/{old_name}.zip")
 
-	for l in fileinput.input(p, True):
-		if old_name in l:
-			l = l.replace(old_name, name)
-		if old_desc in l:
-			l = l.replace(old_desc, desc)
-		sys.stdout.write(l)
+	for p in os.listdir(path):
+		p = f"{path}/{p}"
+
+		if os.path.isdir(p): continue
+
+		if old_name in p:
+			tmp = p.replace(old_name, name)
+			os.rename(p, tmp)
+			p = tmp
+
+		if not p.endswith((".cs", ".csproj", ".md", ".json")): continue
+
+		if p.endswith("README.md"):
+			with open(p, "w", encoding="utf8") as f:
+				f.write(f"# {name}\n\n{desc}")
+			continue
+
+		for l in fileinput.input(p, True):
+			if old_name in l:
+				l = l.replace(old_name, name)
+			if old_desc in l:
+				l = l.replace(old_desc, desc)
+			sys.stdout.write(l)
+
+replace_names(name)
+replace_names(f"{name}/thunderstore")
