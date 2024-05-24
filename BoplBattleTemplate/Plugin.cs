@@ -64,7 +64,7 @@ namespace BoplBattleTemplate
 
 		public static void GameSessionInit_Postfix()
 		{
-			Plugin.logger.LogWarning($"lobby is {(GameLobby.isOnlineGame ? "" : "not")}online, and you are {(SteamManager.LocalPlayerIsLobbyOwner ? "" : "not ")}the owner");
+			Plugin.logger.LogWarning($"lobby is {(GameLobby.isOnlineGame ? "" : "not ")}online, and you are {(SteamManager.LocalPlayerIsLobbyOwner ? "" : "not ")}the owner");
 		}
 	}
 }

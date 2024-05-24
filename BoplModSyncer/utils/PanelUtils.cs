@@ -1,5 +1,6 @@
 ﻿using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -7,35 +8,77 @@ namespace BoplModSyncer.Utils
 {
 	internal class PanelMaker
 	{
-		private static GameObject CopyGeneric(GameObject genericPanel)
+		internal static GameObject currentPanel = null;
+
+		public static GameObject GetTitle(GameObject panel = null) =>
+			GetPanel(panel).Find("Title").gameObject;
+
+		public static GameObject GetInfo(GameObject panel = null) =>
+			GetPanel(panel).Find("Info").gameObject;
+
+		public static GameObject GetTextArea(GameObject panel = null) =>
+			GetPanel(panel).Find("Text").gameObject;
+
+		public static GameObject GetProgressBar(GameObject panel = null) =>
+			GetPanel(panel).Find("ProgressBar").gameObject;
+
+		public static GameObject GetModList(GameObject panel = null) =>
+			GetPanel(panel).Find("NeededModList").gameObject;
+
+		public static GameObject GetOkButton(GameObject panel = null) =>
+			GetPanel(panel).Find("OK Button").gameObject;
+
+		public static GameObject GetCancelButton(GameObject panel = null) =>
+			GetPanel(panel).Find("Cancel Button").gameObject;
+
+		public static Slider GetProgressBarComp(GameObject panel = null) =>
+			GetProgressBar(panel).GetComponent<Slider>();
+
+		public static TextMeshProUGUI GetTitleText(GameObject panel = null) =>
+			GetTitle(panel).GetComponent<TextMeshProUGUI>();
+
+		public static TextMeshProUGUI GetInfoText(GameObject panel = null) =>
+			GetInfo(panel).GetComponent<TextMeshProUGUI>();
+
+		public static TextMeshProUGUI GetTextAreaText(GameObject panel = null) =>
+			GetTextArea(panel).GetComponent<TextMeshProUGUI>();
+
+		public static Button GetOkButtonComp(GameObject panel = null) =>
+			GetOkButton(panel).GetComponent<Button>();
+
+		public static Button GetCancelButtonComp(GameObject panel = null) =>
+			GetCancelButton(panel).GetComponent<Button>();
+
+		private static Transform GetPanel(GameObject panel) => 
+			(panel ?? currentPanel ?? throw new System.NullReferenceException("panel parameter and current panel is null")).transform;
+
+		private static GameObject CopyGeneric(GameObject genericPanel, string name)
 		{
 			GameObject panel = Object.Instantiate(genericPanel);
 			panel.hideFlags = HideFlags.HideInHierarchy;
 			Object.DontDestroyOnLoad(panel);
+			panel.name = name;
 			return panel;
 		}
-		
-		public static TextMeshProUGUI GetTitleText(GameObject panel) =>
-			panel.transform.Find("Title").GetComponent<TextMeshProUGUI>();
 
-		public static TextMeshProUGUI GetInfoText(GameObject panel) =>
-			panel.transform.Find("Info").GetComponent<TextMeshProUGUI>();
-
-		public static GameObject GetTextArea(GameObject panel) =>
-			panel.transform.Find("Text").gameObject;
-
-		public static GameObject GetProgressBar(GameObject panel) =>
-			panel.transform.Find("ProgressBar").gameObject;
-
-		public static GameObject GetModList(GameObject panel) =>
-			panel.transform.Find("NeededModList").gameObject;
-
-		public static Button GetButtonComp(GameObject panel) =>
-			panel.transform.Find("OK Button").GetComponent<Button>();
-
-		public static void SetupCloseButton(GameObject panel)
+		private static void SetupButtons(GameObject panel, UnityAction onOkClick)
 		{
-			GetButtonComp(panel).onClick.AddListener(() => Object.Destroy(panel));
+			void close()
+			{
+				Object.Destroy(panel);
+				currentPanel = null;
+			};
+
+			GetOkButtonComp(panel).onClick.AddListener(() =>
+			{
+				close();
+				onOkClick?.Invoke();
+			});
+			GetCancelButtonComp(panel).onClick.AddListener(() =>
+			{
+				GameUtils.CancelSyncing();
+				close();
+			});
 		}
 
 		private static TMP_FontAsset GetDefaultFont() =>
@@ -44,10 +87,11 @@ namespace BoplModSyncer.Utils
 		public static void MakeGenericPanel(ref GameObject genericPanel)
 		{
 			// add text components into panel
-			TextMeshProUGUI title = genericPanel.transform.Find("Title").gameObject.AddComponent<TextMeshProUGUI>();
-			TextMeshProUGUI info = genericPanel.transform.Find("Info").gameObject.AddComponent<TextMeshProUGUI>();
+			TextMeshProUGUI title = GetTitle(genericPanel).AddComponent<TextMeshProUGUI>();
+			TextMeshProUGUI info = GetInfo(genericPanel).gameObject.AddComponent<TextMeshProUGUI>();
 			TextMeshProUGUI ok = genericPanel.transform.Find("OK Button/Text (TMP)").gameObject.AddComponent<TextMeshProUGUI>();
-			TextMeshProUGUI text = genericPanel.transform.Find("Text").gameObject.AddComponent<TextMeshProUGUI>();
+			TextMeshProUGUI cancel = genericPanel.transform.Find("Cancel Button/Text (TMP)").gameObject.AddComponent<TextMeshProUGUI>();
+			TextMeshProUGUI text = GetTextArea(genericPanel).gameObject.AddComponent<TextMeshProUGUI>();
 
 			// text mesh pro settings
 			title.fontSize = 56;
@@ -56,12 +100,13 @@ namespace BoplModSyncer.Utils
 			title.alignment = TextAlignmentOptions.Left;
 			title.fontStyle = FontStyles.Bold;
 
-			ok.fontSize = 50;
-			ok.color = Color.black;
-			ok.font = GetDefaultFont();
-			ok.alignment = TextAlignmentOptions.Center;
-			ok.fontStyle = FontStyles.Bold;
+			cancel.fontSize = ok.fontSize = 50;
+			cancel.color = ok.color = Color.black;
+			cancel.font = ok.font = GetDefaultFont();
+			cancel.alignment = ok.alignment = TextAlignmentOptions.Center;
+			cancel.fontStyle = ok.fontStyle = FontStyles.Bold;
 			ok.text = "OK";
+			cancel.text = "Cancel";
 
 			info.fontSize = 50;
 			info.color = Color.black;
@@ -78,7 +123,7 @@ namespace BoplModSyncer.Utils
 
 		public static GameObject MakeMissingModsPanel(GameObject genericPanel)
 		{
-			GameObject panel = CopyGeneric(genericPanel);
+			GameObject panel = CopyGeneric(genericPanel, "MissingModsPanel");
 
 			Object.Destroy(GetProgressBar(panel));
 			Object.Destroy(GetTextArea(panel));
@@ -98,7 +143,7 @@ namespace BoplModSyncer.Utils
 
 		public static GameObject MakeNoSyncerPanel(GameObject genericPanel)
 		{
-			GameObject panel = CopyGeneric(genericPanel);
+			GameObject panel = CopyGeneric(genericPanel, "HostMissingSyncer");
 
 			Object.Destroy(GetProgressBar(panel));
 			Object.Destroy(GetTextArea(panel));
@@ -112,7 +157,7 @@ namespace BoplModSyncer.Utils
 
 		public static GameObject MakeInstallingPanel(GameObject genericPanel)
 		{
-			GameObject panel = CopyGeneric(genericPanel);
+			GameObject panel = CopyGeneric(genericPanel, "InstallingPanel");
 
 			Object.Destroy(GetModList(panel));
 
@@ -124,7 +169,7 @@ namespace BoplModSyncer.Utils
 
 			GetTitleText(panel).text = "Downloading!";
 
-			GameObject continueButtonObject = Object.Instantiate(GetButtonComp(panel).gameObject, panel.transform);
+			GameObject continueButtonObject = Object.Instantiate(GetOkButtonComp(panel).gameObject, panel.transform);
 			Button continueButton = continueButtonObject.GetComponent<Button>();
 
 			continueButton.onClick.AddListener(() => continueButton.gameObject.SetActive(false));
@@ -137,7 +182,7 @@ namespace BoplModSyncer.Utils
 
 		public static GameObject MakeRestartPanel(GameObject genericPanel)
 		{
-			GameObject panel = CopyGeneric(genericPanel);
+			GameObject panel = CopyGeneric(genericPanel, "RestartPanel");
 
 			Object.Destroy(GetProgressBar(panel));
 			Object.Destroy(GetTextArea(panel));
@@ -147,6 +192,16 @@ namespace BoplModSyncer.Utils
 			GetInfoText(panel).text = "Game will be restarted!";
 
 			return panel;
+		}
+
+		public static GameObject InstantiatePanel(GameObject panelToInstantiate, UnityAction onOkClick = null)
+		{
+			if (currentPanel != null) throw new System.Exception($"'{currentPanel.name}' panel is already open!");
+
+			Transform canvas = PanelUtils.GetCanvas();
+			currentPanel = Object.Instantiate(panelToInstantiate, canvas);
+			SetupButtons(currentPanel, onOkClick);
+			return currentPanel;
 		}
 	}
 

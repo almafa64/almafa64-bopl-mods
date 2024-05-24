@@ -1,25 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net46</TargetFramework>
-    <AssemblyName>AtomGrenade</AssemblyName>
-    <Description>Grenade explosion go brrrrrrrr!</Description>
-    <Version>1.0.3</Version>
+    <AssemblyName>AbilityRandomizer</AssemblyName>
+    <Description>Randomizes ability slot after usage</Description>
+    <Version>1.0.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     <Configurations>Debug;Release;Thunderstore</Configurations>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="atom_grenade.png" />
-    <None Remove="atom_sheet.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="atom_grenade.png" />
-    <EmbeddedResource Include="atom_sheet.png" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
@@ -261,6 +251,10 @@
     <Reference Include="UnityEngine.XRModule">
       <HintPath>..\GameFolder\BoplBattle_Data\Managed\UnityEngine.XRModule.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="thunderstore\" />
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

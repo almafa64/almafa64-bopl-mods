@@ -3,9 +3,8 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using BoplFixedMath;
 using HarmonyLib;
-using System.IO;
-using System.Reflection;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace AtomGrenade
 {
@@ -19,6 +18,7 @@ namespace AtomGrenade
 		internal static ConfigEntry<double> grenadePower;
 
 		internal static Sprite atomSprite;
+		internal static Sprite atomSheet;
 
 		private void Awake()
 		{
@@ -29,6 +29,8 @@ namespace AtomGrenade
 			grenadePower = config.Bind("Settings", "grenade power multiplier", 5d, "Minimum is 0.0 (negative will set it to 1.0). Maximum somewhere around 5");
 			if (grenadePower.Value < 1d) grenadePower.Value = 1d;
 
+			SceneManager.sceneLoaded += OnSceneLoaded;
+
 			harmony.Patch(
 				AccessTools.Method(typeof(GrenadeExplode), nameof(GrenadeExplode.Detonate)), 
 				prefix: new HarmonyMethod(typeof(Patches), nameof(Patches.Detonate_Prefix))
@@ -37,9 +39,31 @@ namespace AtomGrenade
 				AccessTools.Method(typeof(GameSessionHandler), "SpawnPlayers"), 
 				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix))
 			);
-			
+
+			/*harmony.Patch(
+				AccessTools.Method(typeof(), nameof()),
+				postfix: new(typeof(Patches), nameof(Patches.Test_Postfix))
+			);*/
+
 			Texture2D atomTexture = Utils.LoadDLLTexture("AtomGrenade.atom_grenade.png");
 			atomSprite = Sprite.Create(atomTexture, new Rect(0, 0, atomTexture.width, atomTexture.height), new Vector2(0.5f, 0.5f), 45);
+
+			Texture2D atomSheetTexture = Utils.LoadDLLTexture("AtomGrenade.atom_sheet.png");
+			atomSheet = Sprite.Create(atomSheetTexture, new Rect(0, 0, atomSheetTexture.width, atomSheetTexture.height), new Vector2(0.5f, 0.5f), 45);
+		}
+
+		private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+		{
+			if (scene.name.Contains("Select")) ChSelectSceneLoaded();
+		}
+
+		private void ChSelectSceneLoaded()
+		{
+			// change og sprite sheet to mine
+			foreach(AbilityGrid grid in FindObjectsOfType<AbilityGrid>())
+			{
+				new Traverse(grid).Field<AbilityGridEntry[]>("grid").Value[2].SetSprite(atomSprite);
+			}
 		}
 	}
 
@@ -64,9 +88,14 @@ namespace AtomGrenade
 				if(throwItem2.name.Contains("Grenade"))
 				{
 					throwItem2.ItemPrefab.GetComponent<SpriteRenderer>().sprite = Plugin.atomSprite;
-				renderer.sprite = Plugin.atomSprite;
+					renderer.sprite = Plugin.atomSprite;
 				}
 			}
+		}
+
+		public static void Test_Postfix()
+		{
+			Plugin.logger.LogWarning($"something");
 		}
 	}
 }

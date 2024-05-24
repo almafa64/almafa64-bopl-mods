@@ -1,8 +1,10 @@
 ﻿using BepInEx;
-using Steamworks;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using UnityEngine;
 
 namespace BoplModSyncer.Utils
@@ -11,14 +13,46 @@ namespace BoplModSyncer.Utils
 	{
 		const string DataPrefix = "almafa64>";
 
-		public static void RestartGame(LocalModData[] toDeleteMods)
+		public static string MyCachePath { get; private set; }
+		public static string DownloadedModsPath { get; private set; }
+		public static string OldConfigsPath { get; private set; }
+		public static string OldPluginPath { get; private set; }
+
+		internal static void Init()
+		{
+			MyCachePath = Path.Combine(Paths.CachePath, Plugin.plugin.Info.Metadata.GUID);
+			DownloadedModsPath = Path.Combine(MyCachePath, "downloaded");
+			OldConfigsPath = Path.Combine(MyCachePath, "configs_old");
+			OldPluginPath = Path.Combine(MyCachePath, "plugins_old");
+		}
+
+		public static void CancelSyncing(WebClient client = null)
+		{
+			Plugin.lastLobbyId.Value = 0;
+			client?.CancelAsync();
+			try { Directory.Delete(DownloadedModsPath, true); }
+			catch (DirectoryNotFoundException) { }
+		}
+
+		public static void RestartGameAfterDownload(LocalModData[] toDeleteMods)
 		{
 			int gameId = Plugin.IsDemo ? 2494960 : 1686940;
 			int pid = Process.GetCurrentProcess().Id;
-			string path = Path.Combine(Paths.CachePath, "mod_installer_deleter.bat");
+			string guid = Plugin.plugin.Info.Metadata.GUID;
+			
+			string path = Path.Combine(MyCachePath, "mod_installer_deleter.bat");
+			string myCachePath = Path.GetFileName(MyCachePath);
+			string downloadPath = Path.GetFileName(DownloadedModsPath);
+			string oldPluginPath = Path.GetFileName(OldPluginPath);
+
 			string toDelete = ";";
 			if (toDeleteMods != null && toDeleteMods.Length > 0)
-				toDelete = '"' + string.Join("\";\"", toDeleteMods.Select(e => BaseUtils.GetRelativePath(e.Plugin.Location, Paths.PluginPath + "\\"))) + '"';
+			{
+				toDelete = '"' + string.Join(
+					"\";\"",
+					toDeleteMods.Select(e => BaseUtils.GetRelativePath(e.Plugin.Location, Paths.PluginPath + "\\"))
+				) + '"';
+			}
 
 			/**
 			 * 1. wait until game is closed
@@ -30,7 +64,7 @@ namespace BoplModSyncer.Utils
 			 */
 			File.WriteAllText(path, $"""
 				@echo off
-				cd BepInEx\cache 2>nul
+				cd BepInEx\cache\{Path.GetFileName(MyCachePath)} 2>nul
 				goto :start
 
 				:err_check
@@ -51,29 +85,36 @@ namespace BoplModSyncer.Utils
 				call :err_check
 
 				rem only copy mods if there is no copy already
-				if not exist "..\old_plugins" (
+				if not exist "{oldPluginPath}" (
 					echo\
 					echo [92mcopying old mods to new folder[0m
-					robocopy ..\plugins\ ..\old_plugins\ /e /ndl /nc /ns
+					robocopy ..\..\plugins\ {oldPluginPath}\ /e /ndl /nc /ns
 					call :err_check
 				)
 
 				echo\
 				echo [92mdeleting not needed mods[0m
-				for %%f in ({toDelete}) do del ..\plugins\%%f
+				for %%f in ({toDelete}) do del ..\..\plugins\%%f
 
 				call :err_check
 
 				echo\
 				echo [92mcopying downloaded dlls into mod folder[0m
-				for /r %%f in ({PluginInfo.PLUGIN_NAME}\*.dll) do robocopy "%%~dpf " "..\plugins\%%~nf" "%%~nxf" /ndl /nc /ns
+				cd ..\..\plugins
+				for /r %%f in (..\cache\{myCachePath}\{downloadPath}\*.zip) do (
+					md "%%~nf"
+					cd "%%~nf"
+					tar -xvf "%%f"
+					cd ..
+				)
+				cd ..\cache\{Path.GetFileName(MyCachePath)}
 
 				call :err_check
 
 				echo\
 				echo [92mcleanup[0m
-				rmdir /s /q "{PluginInfo.PLUGIN_NAME}"
-				
+				rmdir /s /q "{downloadPath}"
+
 				call :err_check
 
 				echo\
@@ -84,6 +125,82 @@ namespace BoplModSyncer.Utils
 			Application.Quit();
 		}
 
+		public static void RestartGameAfterSync()
+		{
+			int gameId = Plugin.IsDemo ? 2494960 : 1686940;
+			int pid = Process.GetCurrentProcess().Id;
+			string path = Path.Combine(MyCachePath, "syncer.bat");
+
+			/**
+			 * 1. wait until game is closed
+			 * 2. start game
+			 */
+			File.WriteAllText(path, $"""
+				@echo off
+
+				rem wait for game to finish
+				:start
+				tasklist /fi "pid eq {pid}" /fo csv 2>nul | find /i "{pid}" > nul
+				if "%ERRORLEVEL%"=="0" goto start
+				set "errorlevel=0"
+
+				timeout 2
+
+				echo\
+				echo [91mRestarting game![0m
+				start "" steam://rungameid/{gameId}
+				""");
+			Process.Start(path);
+			Application.Quit();
+		}
+
 		public static string GenerateField(string key) => DataPrefix + key;
+
+		public static Manifest GetManifest(BepInEx.PluginInfo plugin)
+		{
+			string dir = plugin.Location;
+			// loop until at top of plugins folder (dir length is plugin path length)
+			while((dir = Path.GetDirectoryName(dir)).Length > Paths.PluginPath.Length)
+			{
+				string path = Path.Combine(dir, "manifest.json");
+				try
+				{
+					// todo check if found manifest has any connection to plugin (e.g.: mod is in mod)
+					string text = File.ReadAllText(path);
+					return new Manifest(JsonUtility.FromJson<ManifestJSON>(text), dir);
+				}
+				catch (FileNotFoundException) { }
+				catch (Exception ex)
+				{
+					Plugin.logger.LogError(ex);
+					break;
+				}
+			}
+			return null;
+		}
+
+		/// <param name="hostConfigListText">format: <c>guid1:entry_name1\ttype1\tvalue1\nentry_name2\ttype2\tvalue2\\</c></param>
+		public static Dictionary<string, HostConfigEntry[]> GetHostConfigs(string hostConfigListText)
+		{
+			Dictionary<string, HostConfigEntry[]> hostConfigs = [];
+
+			foreach (string mod in hostConfigListText.Split('\\'))
+			{
+				string[] guidSplit = mod.Split([':'], 2);
+				string[] configSplit = guidSplit[1].Split('\n');
+				HostConfigEntry[] hostEntries = new HostConfigEntry[configSplit.Length];
+
+				for (int i = 0; i < configSplit.Length; i++)
+				{
+					string[] entrySplit = configSplit[i].Split(['\t'], 3);
+					string[] nameSplit = entrySplit[0].Split(['='], 2);
+					hostEntries[i] = new(new(nameSplit[0], nameSplit[1]), Type.GetType(entrySplit[1]), entrySplit[2]);
+				}
+
+				hostConfigs.Add(guidSplit[0], hostEntries);
+			}
+
+			return hostConfigs;
+		}
 	}
 }

@@ -2,7 +2,7 @@
     "name": "BoplBattleTemplate",
     "version_number": "1.0.0",
     "website_url": "https://github.com/almafa64/almafa64-bopl-mods/tree/master/BoplBattleTemplate",
-    "description": "description",
+    "description": "My first plugin",
     "dependencies": [
         "BepInEx-BepInExPack-5.4.2100"
     ]

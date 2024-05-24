@@ -1,0 +1,9 @@
+{
+    "name": "AbilityRandomizer",
+    "version_number": "1.0.0",
+    "website_url": "https://github.com/almafa64/almafa64-bopl-mods/tree/master/AbilityRandomizer",
+    "description": "Randomizes ability slot after usage",
+    "dependencies": [
+        "BepInEx-BepInExPack-5.4.2100"
+    ]
+}

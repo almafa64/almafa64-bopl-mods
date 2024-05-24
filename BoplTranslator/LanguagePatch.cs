@@ -1,12 +1,8 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using TMPro;
-using UnityEngine;
 
 namespace BoplTranslator
 {
@@ -110,29 +106,29 @@ namespace BoplTranslator
 			{ "item_beam", "beam" },
 		};
 		private static readonly string[] keys = _translationLookUp.Keys.ToArray();
-		public static readonly ReadOnlyDictionary<string, string> translationLookUp = new(_translationLookUp);
+		//public static readonly ReadOnlyDictionary<string, string> translationLookUp = new(_translationLookUp);
 
 		public static readonly List<string[]> languages = [];
 
-		private static int tmpMaxLanguageIndex = 0;
-
-		static MethodInfo _updateText;
-		static MethodInfo _localTable;
-
-		public static int MaxOGLanguage { get; private set; }
+		private static int allLanguagesCount = 0;
+		public static int OGLanguagesCount { get; private set; }
 
 		public static void Init()
 		{
-			_updateText = typeof(LocalizedText).GetMethod(nameof(LocalizedText.UpdateText));
-			BoplTranslator.harmony.Patch(_updateText, prefix: new HarmonyMethod(Utils.GetMethod(nameof(UpdateTextPatch))));
+			/*Plugin.harmony.Patch(
+				AccessTools.Method(typeof(LocalizedText), nameof(LocalizedText.UpdateText)),
+				prefix: new HarmonyMethod(Utils.GetMethod(nameof(UpdateTextPatch)))
+			);*/
 
-			_localTable = typeof(LocalizationTable).GetMethod(nameof(LocalizationTable.GetText));
-			BoplTranslator.harmony.Patch(_localTable, prefix: new HarmonyMethod(Utils.GetMethod(nameof(GetTextPatch))));
+			Plugin.harmony.Patch(
+				AccessTools.Method(typeof(LocalizationTable), nameof(LocalizationTable.GetText)),
+				prefix: new(typeof(LanguagePatch), nameof(LanguagePatch.GetTextPatch))
+			);
 
-			MaxOGLanguage = Utils.MaxOfEnum<Language>();
+			OGLanguagesCount = Utils.MaxOfEnum<Language>();
 
 			// read languages
-			foreach (FileInfo file in BoplTranslator.translationsDir.EnumerateFiles())
+			foreach (FileInfo file in Plugin.translationsDir.EnumerateFiles())
 			{
 				string[] words = new string[keys.Length];
 				languages.Add(words);
@@ -151,17 +147,19 @@ namespace BoplTranslator
 					string word = words[i];
 					if (word != null) continue;
 					words[i] = _translationLookUp.GetValueSafe(keys[i]);
-					BoplTranslator.logger.LogWarning($"No translation for \"{keys[i]}\" in \"{file.Name}\"");
+					if (!keys[i].StartsWith("undefined")) Plugin.logger.LogWarning($"No translation for \"{keys[i]}\" in \"{file.Name}\"");
 				}
 			}
-			tmpMaxLanguageIndex = languages.Count + MaxOGLanguage;
+
+			allLanguagesCount = languages.Count + OGLanguagesCount;
 		}
 
-		internal static bool UpdateTextPatch(LocalizedText __instance)
+		// !!! not needed, only kept for future use !!!
+		/*internal static bool UpdateTextPatch(LocalizedText __instance)
 		{
 			Language currentLanguage = Settings.Get().Language;
-			if ((int)currentLanguage <= MaxOGLanguage) return true;
-			if ((int)currentLanguage > tmpMaxLanguageIndex) return false;
+			if ((int)currentLanguage <= OGLanguagesCount) return true;  // run original if current langauge is inside of Lanugage
+			if ((int)currentLanguage > allLanguagesCount) return false; // else skip original
 
 			// default font
 			TMP_FontAsset font = LocalizedText.localizationTable.GetFont(Language.EN, __instance.useFontWithStroke);
@@ -170,8 +168,8 @@ namespace BoplTranslator
 			Traverse traverse = Traverse.Create(__instance);
 			traverse.Field("currentLanguage").SetValue(currentLanguage);
 			TextMeshProUGUI textToLocalize = traverse.Field("textToLocalize").GetValue<TextMeshProUGUI>();
-			string enText = traverse.Field("enText").GetValue<string>();
 			TextMesh textToLocalize2 = traverse.Field("textToLocalize2").GetValue<TextMesh>();
+			string enText = traverse.Field("enText").GetValue<string>();
 
 			// run original code with custom languages
 
@@ -190,14 +188,14 @@ namespace BoplTranslator
 			}
 
 			return false;
-		}
+		}*/
 
-		internal static bool GetTextPatch(LocalizationTable __instance, ref string __result, string __0, Language __1)
+		internal static bool GetTextPatch(LocalizationTable __instance, ref string __result, string enText, Language lang)
 		{
-			if ((int)__1 <= MaxOGLanguage) return true;
+			if ((int)lang <= OGLanguagesCount) return true;
 
 			// run orignal getText with custom langauges
-			__result = new Traverse(__instance).Method("getText", __0, languages[(int)__1 - MaxOGLanguage - 1]).GetValue<string>();
+			__result = new Traverse(__instance).Method("getText", enText, languages[(int)lang - OGLanguagesCount - 1]).GetValue<string>();
 
 			return false;
 		}

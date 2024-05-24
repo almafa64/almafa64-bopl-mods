@@ -4,11 +4,12 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using BoplModSyncer.Utils;
 using HarmonyLib;
+using Steamworks;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Net;
+using TinyJson;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -20,9 +21,9 @@ namespace BoplModSyncer
 	public class Plugin : BaseUnityPlugin
 	{
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
-		public static readonly string MOD_LIST_API = "https://api.github.com/repos/ShAdowDev16/BoplMods/contents/AllAvailableMods.txt";
-		public static readonly string MOD_LIST = "https://raw.githubusercontent.com/ShAdowDev16/BoplMods/main/AllAvailableMods.txt";
-		internal static readonly Dictionary<string, LocalModData> _mods = [];
+		public const string THUNDERSTORE_BOPL_MODS = "https://thunderstore.io/c/bopl-battle/api/v1/package";
+
+		private static readonly Dictionary<string, LocalModData> _mods = [];
 		public static readonly ReadOnlyDictionary<string, LocalModData> mods = new(_mods);
 		public static readonly bool IsDemo = Path.GetFileName(Paths.GameRootPath) == "Bopl Battle Demo";
 
@@ -35,12 +36,19 @@ namespace BoplModSyncer
 
 		internal static string _checksum;
 		internal static readonly HashSet<string> _clientOnlyGuids = [
-			"com.Melon_David.MapPicker",
-			"me.antimality.TimeStopTimer",
-			"me.antimality.SuddenDeathTimer",
 			"com.almafa64.BoplTranslator",
 			"com.almafa64.BoplModSyncer",
+			"com.almafa64.BoplUtils",
+			"com.almafa64.WhoseThisTeleport",
+			"com.unluckycrafter.fiberlib",
+			"com.codemob.songnames",
 			"com.WackyModer.ModNames",
+			"com.Melon.AntiMatchmaking",
+			"com.Melon.RageQuitButton",
+			"com.Melon.CustomReplayAmount",
+			"me.antimality.RainbowPlayer",
+			"me.antimality.TimeStopTimer",
+			"me.antimality.SuddenDeathTimer",
 		];
 
 		internal static GameObject genericPanel;
@@ -49,7 +57,7 @@ namespace BoplModSyncer
 		internal static GameObject installingPanel;
 		internal static GameObject restartPanel;
 
-		private TextMeshProUGUI checksumText;
+		private static GameObject checksumTextObj;
 
 		private void Awake()
 		{
@@ -72,30 +80,38 @@ namespace BoplModSyncer
 				postfix: new(typeof(Patches), nameof(Patches.OnLobbyMemberJoinedCallback_Postfix))
 			);
 
+			harmony.Patch(
+				AccessTools.Method("Steamworks.ISteamMatchmaking:JoinLobby", [typeof(SteamId)]),
+				prefix: new(typeof(Patches), nameof(Patches.JoinLobby_Prefix))
+			);
+
 			AssetBundle bundle = AssetBundle.LoadFromStream(BaseUtils.GetResourceStream(PluginInfo.PLUGIN_NAME, "PanelBundle"));
 			genericPanel = bundle.LoadAsset<GameObject>("GenericPanel");
 			bundle.Unload(false);
+
+			GameUtils.Init();
+			Directory.CreateDirectory(GameUtils.MyCachePath);
 		}
 
 		private void Start()
 		{
 			// Get all released mod links
 			WebClient wc = new();
-			string modList = wc.DownloadString(MOD_LIST);
-			string[] modLines = modList.TrimEnd().Split('\n');
+			List<object> modsJSON = (List<object>)wc.DownloadString(THUNDERSTORE_BOPL_MODS).FromJson<object>();
 
-			Dictionary<string, LocalModData> officalMods = [];
+			Dictionary<string, Dictionary<string, string>> downloadLinks = [];
 
-			// save links for every released mod
-			foreach (string modline in modLines)
+			// get all download link for version for all mod
+			foreach(var modObj in modsJSON)
 			{
-				string[] datas = modline.Replace("\"", "").Split(',');
-				for (int i = 0; i < datas.Length; i++)
+				Dictionary<string, object> mod = modObj as Dictionary<string, object>;
+				Dictionary<string, string> modLinks = [];
+				foreach(var versionObj in (List<object>)mod["versions"])
 				{
-					datas[i] = datas[i].Trim();
+					Dictionary<string, object> version = versionObj as Dictionary<string, object>;
+					modLinks.Add((string)version["version_number"], version["download_url"] as string);
 				}
-				LocalModData mod = new(datas[2]);
-				officalMods.Add(datas[2].Split('/').Last(), mod);
+				downloadLinks.Add((string)mod["name"], modLinks);
 			}
 
 			// Get all downloaded mods (and add link if it's released)
@@ -108,14 +124,20 @@ namespace BoplModSyncer
 				logger.LogInfo($"{plugin.Metadata.GUID} - {hash}");
 				hashes.Add(hash);
 
-				officalMods.TryGetValue(plugin.Location.Split(Path.DirectorySeparatorChar).Last(), out LocalModData mod);
-				mod.Plugin = plugin;
-				mod.Hash = hash;
+				Manifest manifest = GameUtils.GetManifest(plugin);
+
+				string link = manifest == null ? "" : downloadLinks.GetValueSafe(manifest.Name).GetValueSafe(manifest.Version);
+				LocalModData mod = new(link)
+				{
+					Manifest = manifest,
+					Plugin = plugin,
+					Hash = hash
+				};
 
 				_mods.Add(plugin.Metadata.GUID, mod);
 			}
 
-			SetChecksumText(BaseUtils.CombineHashes(hashes));
+			MakeChecksumText(BaseUtils.CombineHashes(hashes));
 
 			PanelMaker.MakeGenericPanel(ref genericPanel);
 			noSyncerPanel = PanelMaker.MakeNoSyncerPanel(genericPanel);
@@ -126,33 +148,56 @@ namespace BoplModSyncer
 			genericPanel = null;
 		}
 
-		private void SetChecksumText(string text)
+		private void MakeChecksumText(string checksum)
 		{
-			_checksum = text;
-			checksumText.text = CHECKSUM;
-			checksumText.fontSize -= 5;
+			if (_checksum != null) throw new("Checksum text was already made!");
+			_checksum = checksum;
 
-			// move checksum text to the bottom of screen + 10 pixel
-			Vector3 pos = Camera.main.WorldToScreenPoint(checksumText.transform.position);
-			pos.y = 10;
-			checksumText.transform.position = Camera.main.ScreenToWorldPoint(pos);
+			Transform canvas = PanelUtils.GetCanvas();
+			GameObject text = GameObject.Find("ExitText");
+			GameObject hashObj = Instantiate(text, canvas);
+			hashObj.name = "hashText";
+			Destroy(hashObj.GetComponent<LocalizedText>());
+
+			TextMeshProUGUI checksumText = hashObj.GetComponent<TextMeshProUGUI>();
+			checksumText.transform.position = text.transform.position;
+			checksumText.text = checksum;
+
+			checksumTextObj = Instantiate(hashObj);
+			checksumTextObj.hideFlags = HideFlags.HideInHierarchy;
+			DontDestroyOnLoad(checksumTextObj);
+			Destroy(hashObj);
+
+			ShowChecksumText(10);
+		}
+
+		private void ShowChecksumText(int ypos)
+		{
+			if (checksumTextObj == null) return;
+
+			GameObject hashObj = Instantiate(checksumTextObj, PanelUtils.GetCanvas());
+
+			// move checksum text to the bottom of screen + 10 pixel up
+			Vector3 pos = Camera.main.WorldToScreenPoint(hashObj.transform.position);
+			pos.y = ypos;
+			hashObj.transform.position = Camera.main.ScreenToWorldPoint(pos);
 		}
 
 		private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
 			if (scene.name == "MainMenu") OnMainMenuloaded();
+			else if (scene.name.Contains("Select")) OnSelectMenuLoaded();
 		}
 
 		private void OnMainMenuloaded()
 		{
-			// create checksum on center of screen
-			Transform canvas = PanelUtils.GetCanvas();
-			GameObject exitText = GameObject.Find("ExitText");
-			GameObject hashObj = Instantiate(exitText, canvas);
-			Destroy(hashObj.GetComponent<LocalizedText>());
-			checksumText = hashObj.GetComponent<TextMeshProUGUI>();
-			checksumText.transform.position = exitText.transform.position;
-			if (_checksum != null) SetChecksumText(_checksum);
+			ShowChecksumText(10);
+		}
+
+		private void OnSelectMenuLoaded()
+		{
+			// idk why this needs to be so big
+			ShowChecksumText(1500);
 		}
 	}
 }
