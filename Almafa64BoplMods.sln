@@ -32,6 +32,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BoplUtils", "BoplUtils\Bopl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AbilityRandomizer", "AbilityRandomizer\AbilityRandomizer.csproj", "{C960ADB0-4DCF-4440-8261-B9AC03D6036C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wormhole", "Wormhole\Wormhole.csproj", "{9A9B1D33-6F9E-4D0D-A9CE-D4FE803A5DD9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,12 @@ Global
 		{C960ADB0-4DCF-4440-8261-B9AC03D6036C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C960ADB0-4DCF-4440-8261-B9AC03D6036C}.Thunderstore|Any CPU.ActiveCfg = Thunderstore|Any CPU
 		{C960ADB0-4DCF-4440-8261-B9AC03D6036C}.Thunderstore|Any CPU.Build.0 = Thunderstore|Any CPU
+		{9A9B1D33-6F9E-4D0D-A9CE-D4FE803A5DD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A9B1D33-6F9E-4D0D-A9CE-D4FE803A5DD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A9B1D33-6F9E-4D0D-A9CE-D4FE803A5DD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A9B1D33-6F9E-4D0D-A9CE-D4FE803A5DD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A9B1D33-6F9E-4D0D-A9CE-D4FE803A5DD9}.Thunderstore|Any CPU.ActiveCfg = Thunderstore|Any CPU
+		{9A9B1D33-6F9E-4D0D-A9CE-D4FE803A5DD9}.Thunderstore|Any CPU.Build.0 = Thunderstore|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
