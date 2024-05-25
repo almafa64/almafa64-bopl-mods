@@ -46,8 +46,8 @@ namespace AbilityRandomizer
 			);
 
 			harmony.Patch(
-				AccessTools.Method(typeof(GameSession), nameof(GameSession.Init)),
-				postfix: new(typeof(Patches), nameof(Patches.GameSessionInit_Postfix))
+				AccessTools.Method(typeof(GameSessionHandler), "SpawnPlayers"),
+				postfix: new HarmonyMethod(typeof(Patches), nameof(Patches.SpawnPlayers_Postfix))
 			);
 
 			harmony.Patch(
@@ -107,7 +107,7 @@ namespace AbilityRandomizer
 			AudioManager.Get().Play("abilityPickup");
 		}
 
-		internal static void GameSessionInit_Postfix()
+		internal static void SpawnPlayers_Postfix()
 		{
 			ropeBodies.Clear();
 			ropeSlots.Clear();
