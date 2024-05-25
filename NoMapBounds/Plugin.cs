@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using System.Reflection;
 
 namespace NoMapBounds
 {
@@ -28,10 +29,10 @@ namespace NoMapBounds
 
 	class Patches
 	{
-		public static bool UpdateSim_Prefix(DestroyIfOutsideSceneBounds __instance)
-		{
-			if (Traverse.Create(__instance).Field("fixTrans").GetValue<FixTransform>().position.y < SceneBounds.WaterHeight) return true; 
-			return false;
-		}
+		private static readonly FieldInfo fixTransField = typeof(DestroyIfOutsideSceneBounds).GetField("fixTrans", AccessTools.all);
+
+		// only run original code if position is under water level
+		internal static bool UpdateSim_Prefix(DestroyIfOutsideSceneBounds __instance) =>
+			(fixTransField.GetValue(__instance) as FixTransform).position.y <= SceneBounds.WaterHeight;
 	}
 }
