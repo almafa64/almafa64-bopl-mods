@@ -4,13 +4,17 @@
 	{
 		public enum Font
 		{
-			En,
-			Jp
+			English,
+			Japan,
+			Korean,
+			Russian,
+			Chinese,
+			Poland
 		}
 
-		public static void AddText(string textGuid, string englishText, Font language = Font.En)
+		/*public static void AddText(string textGuid, string englishText, Font language = Font.English)
 		{
 			
-		}
+		}*/
 	}
 }

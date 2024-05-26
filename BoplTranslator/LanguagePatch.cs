@@ -107,7 +107,7 @@ namespace BoplTranslator
 			{ "item_beam", "beam" },
 		};
 
-		public static readonly List<string[]> languages = [];
+		public static readonly List<CustomLanguage> languages = [];
 		public static int OGLanguagesCount { get; private set; }
 
 		private static readonly MethodInfo getTextMethod = typeof(LocalizationTable).GetMethod("getText", AccessTools.all);
@@ -132,7 +132,8 @@ namespace BoplTranslator
 			foreach (FileInfo file in Plugin.translationsDir.EnumerateFiles())
 			{
 				string[] words = new string[translationKeys.Length];
-				languages.Add(words);
+				CustomLanguage language = new(words);
+				languages.Add(language);
 
 				foreach (string line in File.ReadLines(file.FullName))
 				{
@@ -167,18 +168,46 @@ namespace BoplTranslator
 			if (!IsCustomLanguage(lang)) return true;
 
 			// run orignal getText with custom langauges
-			__result = getTextMethod.Invoke(__instance, [enText, languages[(int)lang - OGLanguagesCount - 1]]) as string;
+			__result = getTextMethod.Invoke(__instance, [enText, GetCustomLanguage(lang).translations]) as string;
 			
 			return false;
 		}
 
-		internal static bool GetFont_Prefix(LocalizationTable __instance, ref Language lang, ref bool useFontWithStroke)
+		internal static void GetFont_Prefix(ref Language lang, ref bool useFontWithStroke)
 		{
-			if (!IsCustomLanguage(lang)) return true;
+			if (!IsCustomLanguage(lang)) return;
 
-			return false;
+			CustomLanguage customLanguage = GetCustomLanguage(lang);
+
+			switch (customLanguage.font)
+			{
+				case BopLTranslator.Font.English: lang = Language.EN; break;
+				case BopLTranslator.Font.Japan: lang = Language.JP; break;
+				case BopLTranslator.Font.Korean: lang = Language.KO; break;
+				case BopLTranslator.Font.Russian: lang = Language.RU; break;
+				case BopLTranslator.Font.Chinese: lang = Language.ZHCN; break;
+				case BopLTranslator.Font.Poland: lang = Language.PL; break;
+			}
+
+			useFontWithStroke = customLanguage.stroke;
 		}
 
 		private static bool IsCustomLanguage(Language lang) => (int)lang > OGLanguagesCount;
+
+		private static CustomLanguage GetCustomLanguage(Language lang) => languages[(int)lang - OGLanguagesCount - 1];
+	}
+
+	class CustomLanguage
+	{
+		internal string[] translations;
+		internal BopLTranslator.Font font;
+		internal bool stroke;
+
+		internal CustomLanguage(string[] translations, BopLTranslator.Font font = BopLTranslator.Font.English, bool stroke = false)
+		{
+			this.translations = translations;
+			this.font = font;
+			this.stroke = stroke;
+		}
 	}
 }
