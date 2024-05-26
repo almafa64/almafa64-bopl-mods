@@ -134,8 +134,7 @@ namespace Wormhole
 			PlayerPhysics physics = playerTraverse.Field("physics").GetValue<PlayerPhysics>();
 
 			physics.UnGround(true, false);
-			// ToDo add velocity to forward not up
-			body.position = holePair.dCircle.position + Vec2.up * __instance.dCircle.radius;
+			body.position = holePair.dCircle.position + Vec2.NormalizedSafe(body.Velocity) * __instance.dCircle.radius;
 
 			return false;
 		}
