@@ -70,7 +70,7 @@ namespace Wormhole
 		{
 			foreach (KeyValuePair<BlackHole, BlackHole> holePair in holePairs)
 			{
-				// skip if it's connected, connection is to self
+				// skip if it's connected or connection is self
 				// or this is white and connection is white (dont connect white to white or black to black)
 				if (holePair.Value != null || whiteHoles.Contains(holePair.Key) == isWhitehole || holePair.Key == blackHole)
 					continue;
@@ -81,13 +81,17 @@ namespace Wormhole
 			}
 		}
 
-		private static void RemoveConnection(BlackHole blackHole)
+		private static void RemoveConnection(BlackHole blackHole, bool tryReconnect)
 		{
 			try
 			{
 				BlackHole value = holePairs[blackHole];
+				if (value != null)
+				{
+					holePairs[value] = null;
+					if(tryReconnect) ConnectToEmptyPair(value, whiteHoles.Contains(value));
+				}
 				holePairs[blackHole] = null;
-				if (value != null) holePairs[value] = null;
 			}
 			catch (KeyNotFoundException) { }
 		}
@@ -112,7 +116,7 @@ namespace Wormhole
 				if (selfMass > compMass || (compMass == selfMass && __instance.spriteRen.sortingOrder > component.spriteRen.sortingOrder))
 				{
 					// eated another blackhole
-					RemoveConnection(component);
+					RemoveConnection(component, false);
 					whiteHoles.Remove(component);
 					holePairs.Remove(component);
 				}
@@ -138,14 +142,13 @@ namespace Wormhole
 
 		internal static void BlackHoleGrow_Postfix(BlackHole __instance)
 		{
-			Traverse traverse = new(__instance);
 			Fix mass = GetMass(__instance);
 
 			if (mass >= (Fix)0)
 			{
 				if (!whiteHoles.Remove(__instance)) return;
 
-				RemoveConnection(__instance);
+				RemoveConnection(__instance, true);
 				ConnectToEmptyPair(__instance, false);
 				Object.Destroy(__instance.gameObject.GetComponent<LineRenderer>());
 
@@ -160,7 +163,7 @@ namespace Wormhole
 			lineRenderer.endWidth = lineRenderer.startWidth = 0.2f;
 			lineRenderer.positionCount = 2;
 
-			RemoveConnection(__instance);
+			RemoveConnection(__instance, true);
 			ConnectToEmptyPair(__instance, true);
 		}
 
