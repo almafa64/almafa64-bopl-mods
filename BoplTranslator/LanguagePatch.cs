@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace BoplTranslator
 {
@@ -105,99 +106,79 @@ namespace BoplTranslator
 			{ "item_drill", "drill" },
 			{ "item_beam", "beam" },
 		};
-		private static readonly string[] keys = _translationLookUp.Keys.ToArray();
-		//public static readonly ReadOnlyDictionary<string, string> translationLookUp = new(_translationLookUp);
 
 		public static readonly List<string[]> languages = [];
-
-		private static int allLanguagesCount = 0;
 		public static int OGLanguagesCount { get; private set; }
+
+		private static readonly MethodInfo getTextMethod = typeof(LocalizationTable).GetMethod("getText", AccessTools.all);
 
 		public static void Init()
 		{
-			/*Plugin.harmony.Patch(
-				AccessTools.Method(typeof(LocalizedText), nameof(LocalizedText.UpdateText)),
-				prefix: new HarmonyMethod(Utils.GetMethod(nameof(UpdateTextPatch)))
-			);*/
-
 			Plugin.harmony.Patch(
 				AccessTools.Method(typeof(LocalizationTable), nameof(LocalizationTable.GetText)),
-				prefix: new(typeof(LanguagePatch), nameof(LanguagePatch.GetTextPatch))
+				prefix: new(typeof(LanguagePatch), nameof(GetTextPatch))
+			);
+
+			Plugin.harmony.Patch(
+				AccessTools.Method(typeof(LocalizationTable), nameof(LocalizationTable.GetFont)),
+				prefix: new(typeof(LanguagePatch), nameof(GetFont_Prefix))
 			);
 
 			OGLanguagesCount = Utils.MaxOfEnum<Language>();
 
+			string[] translationKeys = _translationLookUp.Keys.ToArray();
+
 			// read languages
 			foreach (FileInfo file in Plugin.translationsDir.EnumerateFiles())
 			{
-				string[] words = new string[keys.Length];
+				string[] words = new string[translationKeys.Length];
 				languages.Add(words);
+
 				foreach (string line in File.ReadLines(file.FullName))
 				{
 					string[] splitted = line.Split(['='], 2);
 					if (splitted.Length == 1) continue;
+
 					string key = splitted[0].Trim();
 					string value = splitted[1].Trim().Replace("\\n", "\n");
-					int index = Array.FindIndex(keys, e => e.Equals(key));
+					
+					int index = Array.FindIndex(translationKeys, e => e.Equals(key));
 					if (index == -1) continue;
+
 					words[index] = value;
 				}
+
 				for (int i = 0; i < words.Length; i++)
 				{
 					string word = words[i];
 					if (word != null) continue;
-					words[i] = _translationLookUp.GetValueSafe(keys[i]);
-					if (!keys[i].StartsWith("undefined")) Plugin.logger.LogWarning($"No translation for \"{keys[i]}\" in \"{file.Name}\"");
+
+					string key = translationKeys[i];
+					words[i] = _translationLookUp.GetValueSafe(key);
+
+					if (!key.StartsWith("undefined"))
+						Plugin.logger.LogWarning($"No translation for \"{translationKeys[i]}\" in \"{file.Name}\"");
 				}
 			}
-
-			allLanguagesCount = languages.Count + OGLanguagesCount;
 		}
-
-		// !!! not needed, only kept for future use !!!
-		/*internal static bool UpdateTextPatch(LocalizedText __instance)
-		{
-			Language currentLanguage = Settings.Get().Language;
-			if ((int)currentLanguage <= OGLanguagesCount) return true;  // run original if current langauge is inside of Lanugage
-			if ((int)currentLanguage > allLanguagesCount) return false; // else skip original
-
-			// default font
-			TMP_FontAsset font = LocalizedText.localizationTable.GetFont(Language.EN, __instance.useFontWithStroke);
-
-			// get original text and text meshes
-			Traverse traverse = Traverse.Create(__instance);
-			traverse.Field("currentLanguage").SetValue(currentLanguage);
-			TextMeshProUGUI textToLocalize = traverse.Field("textToLocalize").GetValue<TextMeshProUGUI>();
-			TextMesh textToLocalize2 = traverse.Field("textToLocalize2").GetValue<TextMesh>();
-			string enText = traverse.Field("enText").GetValue<string>();
-
-			// run original code with custom languages
-
-			if (textToLocalize == null)
-			{
-				textToLocalize2.text = LocalizedText.localizationTable.GetText(enText, currentLanguage);
-				return false;
-			}
-
-			textToLocalize.fontStyle = __instance.useFontWithStroke ? FontStyles.Bold : FontStyles.Normal;
-			textToLocalize.text = LocalizedText.localizationTable.GetText(enText, currentLanguage);
-
-			if (!__instance.ignoreFontChange && textToLocalize.font != font)
-			{
-				textToLocalize.font = font;
-			}
-
-			return false;
-		}*/
 
 		internal static bool GetTextPatch(LocalizationTable __instance, ref string __result, string enText, Language lang)
 		{
-			if ((int)lang <= OGLanguagesCount) return true;
+			if (!IsCustomLanguage(lang)) return true;
 
 			// run orignal getText with custom langauges
-			__result = new Traverse(__instance).Method("getText", enText, languages[(int)lang - OGLanguagesCount - 1]).GetValue<string>();
+			__result = getTextMethod.Invoke(__instance, [enText, languages[(int)lang - OGLanguagesCount - 1]]) as string;
+			
+			return false;
+		}
+
+		internal static bool GetFont_Prefix(LocalizationTable __instance, ref Language lang, ref bool useFontWithStroke)
+		{
+			if (!IsCustomLanguage(lang)) return true;
 
 			return false;
 		}
+
+		private static bool IsCustomLanguage(Language lang) => (int)lang > OGLanguagesCount;
 	}
 }
