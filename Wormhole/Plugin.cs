@@ -62,7 +62,14 @@ namespace Wormhole
 		internal static readonly HashSet<BlackHole> whiteHoles = [];
 		internal static readonly Dictionary<BlackHole, BlackHole> holePairs = [];
 
-		private static readonly FieldInfo massField = typeof(BlackHole).GetField("mass", AccessTools.all);
+		private static readonly FieldInfo massField = GetField<BlackHole>("mass");
+		private static readonly FieldInfo affectorLayerField = GetField<BlackHole>("affectorLayer");
+		private static readonly FieldInfo playerLayerField = GetField<BlackHole>("playerLayer");
+
+		private static readonly FieldInfo bodyField = GetField<PlayerCollision>("body");
+		private static readonly FieldInfo physicsField = GetField<PlayerCollision>("physics");
+
+		private static FieldInfo GetField<T>(string name) => typeof(T).GetField(name, AccessTools.all);
 
 		private static Fix GetMass(BlackHole blackHole) => (Fix) massField.GetValue(blackHole);
 
@@ -107,9 +114,7 @@ namespace Wormhole
 			Fix selfMass = GetMass(__instance);
 			if (selfMass < (Fix)0) return true;
 
-			Traverse traverse = new(__instance);
-
-			if (collision.layer == traverse.Field("affectorLayer").GetValue<int>())
+			if (collision.layer == (int)affectorLayerField.GetValue(__instance))
 			{
 				BlackHole component = collision.colliderPP.fixTrans.GetComponent<BlackHole>();
 				Fix compMass = GetMass(component);
@@ -123,15 +128,14 @@ namespace Wormhole
 				return true;
 			}
 
-			if (collision.layer != traverse.Field("playerLayer").GetValue<int>()) return true;
+			if (collision.layer != (int)playerLayerField.GetValue(__instance)) return true;
 
 			// only run original code if this hole isnt paired
 			if (!holePairs.TryGetValue(__instance, out BlackHole holePair) || holePair == null) return true;
 
 			PlayerCollision playerCollision = collision.colliderPP.fixTrans.gameObject.GetComponent<PlayerCollision>();
-			Traverse playerTraverse = new(playerCollision);
-			PlayerBody body = playerTraverse.Field("body").GetValue<PlayerBody>();
-			PlayerPhysics physics = playerTraverse.Field("physics").GetValue<PlayerPhysics>();
+			PlayerBody body = bodyField.GetValue(playerCollision) as PlayerBody;
+			PlayerPhysics physics = physicsField.GetValue(playerCollision) as PlayerPhysics;
 
 			physics.UnGround(true, false);
 			body.position = holePair.dCircle.position + Vec2.NormalizedSafe(body.Velocity) * __instance.dCircle.radius;
