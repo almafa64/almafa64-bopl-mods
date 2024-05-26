@@ -9,6 +9,7 @@ using UnityEngine;
 namespace Wormhole
 {
 	[BepInPlugin($"com.almafa64.{PluginInfo.PLUGIN_NAME}", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+	[BepInDependency("com.David_Loves_JellyCar_Worlds.PlatformApi")]
 	[BepInProcess("BoplBattle.exe")]
 	public class Plugin : BaseUnityPlugin
 	{
@@ -127,6 +128,10 @@ namespace Wormhole
 				}
 				return true;
 			}
+
+			/*// ToDo set platform position
+			PlatformApi.PlatformApi.SetPos();
+			PlatformApi.PlatformApi.SetHome();*/
 
 			if (collision.layer != (int)playerLayerField.GetValue(__instance)) return true;
 

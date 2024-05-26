@@ -38,6 +38,9 @@
     <Reference Include="Mono.Security">
       <HintPath>..\GameFolder\BoplBattle_Data\Managed\Mono.Security.dll</HintPath>
     </Reference>
+    <Reference Include="PlatformApi">
+      <HintPath>dependencies\PlatformApi.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Analytics.DataPrivacy">
       <HintPath>..\GameFolder\BoplBattle_Data\Managed\Unity.Analytics.DataPrivacy.dll</HintPath>
     </Reference>
