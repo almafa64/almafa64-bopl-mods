@@ -46,14 +46,19 @@ namespace Wormhole
 		{
 			foreach (var whiteHole in Patches.whiteHoles)
 			{
-				LineRenderer lineRenderer = whiteHole.gameObject.GetComponent<LineRenderer>();
-				lineRenderer.SetPosition(0, Vector3.zero);
-				lineRenderer.SetPosition(1, Vector3.zero);
+				try
+				{
+					LineRenderer lineRenderer = whiteHole.GetComponent<LineRenderer>();
 
-				BlackHole pair = Patches.holePairs[whiteHole];
-				if (pair == null) continue;
-				lineRenderer.SetPosition(0, pair.transform.transform.position);
-				lineRenderer.SetPosition(1, whiteHole.transform.transform.position);
+					lineRenderer.SetPosition(0, Vector3.zero);
+					lineRenderer.SetPosition(1, Vector3.zero);
+
+					BlackHole pair = Patches.holePairs[whiteHole];
+					if (pair == null) continue;
+					lineRenderer.SetPosition(0, pair.transform.transform.position);
+					lineRenderer.SetPosition(1, whiteHole.transform.transform.position);
+				}
+				catch { }
 			}
 		}
 	}
@@ -113,11 +118,13 @@ namespace Wormhole
 		internal static bool BlackHoleCollide_Prefix(BlackHole __instance, CollisionInformation collision)
 		{
 			Fix selfMass = GetMass(__instance);
-			if (selfMass < (Fix)0) return true;
+			if (selfMass < Fix.Zero) return true;
+
+			GameObject collidedObject = collision.colliderPP.fixTrans.gameObject;
 
 			if (collision.layer == (int)affectorLayerField.GetValue(__instance))
 			{
-				BlackHole component = collision.colliderPP.fixTrans.GetComponent<BlackHole>();
+				BlackHole component = collidedObject.GetComponent<BlackHole>();
 				Fix compMass = GetMass(component);
 				if (selfMass > compMass || (compMass == selfMass && __instance.spriteRen.sortingOrder > component.spriteRen.sortingOrder))
 				{
@@ -129,21 +136,52 @@ namespace Wormhole
 				return true;
 			}
 
-			/*// ToDo set platform position
-			PlatformApi.PlatformApi.SetPos();
-			PlatformApi.PlatformApi.SetHome();*/
-
-			if (collision.layer != (int)playerLayerField.GetValue(__instance)) return true;
-
 			// only run original code if this hole isnt paired
 			if (!holePairs.TryGetValue(__instance, out BlackHole holePair) || holePair == null) return true;
 
-			PlayerCollision playerCollision = collision.colliderPP.fixTrans.gameObject.GetComponent<PlayerCollision>();
-			PlayerBody body = bodyField.GetValue(playerCollision) as PlayerBody;
+			//Fix holeRadius = __instance.dCircle.radius * (__instance.influenceRadiusMultiplier / (Fix)2);
+			Fix holeRadius = __instance.dCircle.radius;
+
+			if (collision.layer == LayerMask.NameToLayer("wall"))
+			{
+				// --- walls ---
+				/*// ToDo set platform position
+				PlatformApi.PlatformApi.SetPos();
+				PlatformApi.PlatformApi.SetHome();*/
+				return false;
+			}
+
+			Plugin.logger.LogWarning(collidedObject + ": " + string.Join("\n", collidedObject.GetComponents<object>()));
+
+			if (collision.layer != (int)playerLayerField.GetValue(__instance))
+			{
+				if(collision.colliderPP.monobehaviourCollider.inverseMass <= Fix.Zero) return true;
+
+				// --- everything else (missile, etc) ---
+				BoplBody body = collidedObject.GetComponent<BoplBody>();
+				body.position = holePair.dCircle.position + Vec2.NormalizedSafe(body.velocity) * holeRadius * (__instance.influenceRadiusMultiplier / (Fix)1.5);
+				body.velocity = body.StartVelocity;
+
+				return false;
+			}
+
+			// --- player ---
+
+			PlayerCollision playerCollision = collidedObject.GetComponent<PlayerCollision>();
+
+			if (playerCollision == null)
+			{
+				// player is ball
+				BoplBody body = collidedObject.GetComponent<BoplBody>();
+				body.position = holePair.dCircle.position + Vec2.NormalizedSafe(body.velocity) * holeRadius;
+				return false;
+			}
+
+			PlayerBody playerBody = bodyField.GetValue(playerCollision) as PlayerBody;
 			PlayerPhysics physics = physicsField.GetValue(playerCollision) as PlayerPhysics;
 
 			physics.UnGround(true, false);
-			body.position = holePair.dCircle.position + Vec2.NormalizedSafe(body.Velocity) * __instance.dCircle.radius;
+			playerBody.position = holePair.dCircle.position + Vec2.NormalizedSafe(playerBody.Velocity) * holeRadius;
 
 			return false;
 		}
@@ -152,7 +190,7 @@ namespace Wormhole
 		{
 			Fix mass = GetMass(__instance);
 
-			if (mass >= (Fix)0)
+			if (mass >= Fix.Zero)
 			{
 				if (!whiteHoles.Remove(__instance)) return;
 
