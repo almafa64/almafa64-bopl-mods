@@ -73,7 +73,7 @@ namespace Wormhole
 			PlayerBody playerBody = bodyField.GetValue(playerCollision) as PlayerBody;
 			PlayerPhysics physics = physicsField.GetValue(playerCollision) as PlayerPhysics;
 
-			physics.UnGround(true, false);
+			physics?.UnGround(true, false);
 			playerBody.position = pair.dCircle.position + Vec2.NormalizedSafe(playerBody.Velocity) * pair.dCircle.radius;
 		}
 
