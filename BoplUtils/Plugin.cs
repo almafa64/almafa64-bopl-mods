@@ -14,14 +14,14 @@ namespace BoplUtils
 {
 	[BepInPlugin($"com.almafa64.{PluginInfo.PLUGIN_NAME}", PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
 	[BepInProcess("BoplBattle.exe")]
-	public class Plugin : BaseUnityPlugin
+	internal class Plugin : BaseUnityPlugin
 	{
 		internal static Harmony harmony;
 		internal static ManualLogSource logger;
 		internal static ConfigFile config;
 
-		public static Dictionary<string, string[]> json;
-		public static string yaml;
+		/*public static Dictionary<string, string[]> json;
+		public static string yaml;*/
 
 		private void Awake()
 		{
