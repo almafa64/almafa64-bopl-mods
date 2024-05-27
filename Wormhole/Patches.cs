@@ -80,8 +80,11 @@ namespace Wormhole
 		private static void TeleportObject(GameObject collidedObject, BlackHole pair)
 		{
 			BoplBody body = collidedObject.GetComponent<BoplBody>();
-			body.position = pair.dCircle.position + Vec2.NormalizedSafe(body.velocity) * pair.dCircle.radius * (pair.influenceRadiusMultiplier / (Fix)1.5);
-			body.velocity = body.StartVelocity;
+			Vec2 normVel = Vec2.NormalizedSafe(body.velocity);
+			
+			// ToDo change influenceRadiusMultiplier, it gets too big on big holes
+			body.position = pair.dCircle.position + normVel * pair.dCircle.radius * (pair.influenceRadiusMultiplier / (Fix)1.5);
+			body.velocity /= pair.influenceRadiusMultiplier;
 		}
 
 		private static void EatOtherHole(GameObject collidedObject, BlackHole blackHole, Fix mass)
@@ -173,6 +176,15 @@ namespace Wormhole
 		{
 			holePairs.Add(__instance, null);
 			ConnectToEmptyPair(__instance, false);
+		}
+
+		internal static bool SmokeOnCollide_Prefix(CollisionInformation collision)
+		{
+			BlackHole blackHole = collision.colliderPP.fixTrans.GetComponent<BlackHole>();
+			if (blackHole == null) return true;
+
+			// only run original if collided is a hole or isnt connected
+			return !holePairs.TryGetValue(blackHole, out BlackHole holePair) || holePair == null;
 		}
 	}
 }

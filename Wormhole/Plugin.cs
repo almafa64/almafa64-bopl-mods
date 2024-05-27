@@ -37,6 +37,11 @@ namespace Wormhole
 				AccessTools.Method(typeof(BlackHole), nameof(BlackHole.Init)),
 				postfix: new(typeof(Patches), nameof(Patches.BlackHoleInit_Postfix))
 			);
+
+			harmony.Patch(
+				AccessTools.Method(typeof(SmokeGrenadeExplode2), nameof(SmokeGrenadeExplode2.OnCollide)),
+				prefix: new(typeof(Patches), nameof(Patches.SmokeOnCollide_Prefix))
+			);
 		}
 
 		void Update()
