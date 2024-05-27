@@ -58,7 +58,7 @@ namespace Wormhole
 			whiteHoles.Clear();
 		}
 
-		private static void TeleportPlayer(GameObject collidedObject, BlackHole pair)
+		private static bool TeleportPlayer(GameObject collidedObject, BlackHole pair)
 		{
 			PlayerCollision playerCollision = collidedObject.GetComponent<PlayerCollision>();
 
@@ -67,24 +67,39 @@ namespace Wormhole
 				// player is ball
 				BoplBody body = collidedObject.GetComponent<BoplBody>();
 				body.position = pair.dCircle.position + Vec2.NormalizedSafe(body.velocity) * pair.dCircle.radius;
-				return;
+				return false;
 			}
 
 			PlayerBody playerBody = bodyField.GetValue(playerCollision) as PlayerBody;
 			PlayerPhysics physics = physicsField.GetValue(playerCollision) as PlayerPhysics;
 
-			physics?.UnGround(true, false);
+			physics?.UnGround(true, false); // if physics null then player is drilling
 			playerBody.position = pair.dCircle.position + Vec2.NormalizedSafe(playerBody.Velocity) * pair.dCircle.radius;
+			return false;
 		}
 
-		private static void TeleportObject(GameObject collidedObject, BlackHole pair)
+		private static bool TeleportObject(GameObject collidedObject, BlackHole pair)
 		{
+			// let blackhole destroy spike
+			if (collidedObject.GetComponent<SpikeAttack>() != null) return true;
+
 			BoplBody body = collidedObject.GetComponent<BoplBody>();
 			Vec2 normVel = Vec2.NormalizedSafe(body.velocity);
 			
 			// ToDo change influenceRadiusMultiplier, it gets too big on big holes
 			body.position = pair.dCircle.position + normVel * pair.dCircle.radius * (pair.influenceRadiusMultiplier / (Fix)1.5);
 			body.velocity /= pair.influenceRadiusMultiplier;
+			return false;
+		}
+
+		private static bool TeleportPlatform(GameObject collidedObject, BlackHole blackHole)
+		{
+			// --- walls ---
+			/*// ToDo set platform position
+			PlatformApi.PlatformApi.SetPos();
+			PlatformApi.PlatformApi.SetHome();*/
+
+			return false;
 		}
 
 		private static void EatOtherHole(GameObject collidedObject, BlackHole blackHole, Fix mass)
@@ -98,14 +113,6 @@ namespace Wormhole
 				whiteHoles.Remove(component);
 				holePairs.Remove(component);
 			}
-		}
-
-		private static void TeleportPlatform(GameObject collidedObject, BlackHole blackHole)
-		{
-			// --- walls ---
-			/*// ToDo set platform position
-			PlatformApi.PlatformApi.SetPos();
-			PlatformApi.PlatformApi.SetHome();*/
 		}
 
 		internal static bool BlackHoleCollide_Prefix(BlackHole __instance, CollisionInformation collision)
@@ -126,8 +133,7 @@ namespace Wormhole
 
 			if (collision.layer == LayerMask.NameToLayer("wall"))
 			{
-				TeleportPlatform(collidedObject, __instance);
-				return false;
+				return TeleportPlatform(collidedObject, __instance);
 			}
 
 			Plugin.logger.LogWarning($"{collidedObject}: {string.Join("\n", collidedObject.GetComponents<object>())}");
@@ -136,12 +142,10 @@ namespace Wormhole
 			{
 				if (collision.colliderPP.monobehaviourCollider.inverseMass <= Fix.Zero) return true;
 
-				TeleportObject(collidedObject, holePair);
-				return false;
+				return TeleportObject(collidedObject, holePair);
 			}
 
-			TeleportPlayer(collidedObject, holePair);
-			return false;
+			return TeleportPlayer(collidedObject, holePair);
 		}
 
 		internal static void BlackHoleGrow_Postfix(BlackHole __instance)
