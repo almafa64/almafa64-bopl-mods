@@ -75,6 +75,10 @@ namespace Wormhole
 
 			physics?.UnGround(true, false); // if physics null then player is drilling
 			playerBody.position = pair.dCircle.position + Vec2.NormalizedSafe(playerBody.Velocity) * pair.dCircle.radius;
+
+			// exit roll if rolling
+			//collidedObject.GetComponent<Roll>()?.ExitAbility(default);
+
 			return false;
 		}
 
@@ -132,20 +136,17 @@ namespace Wormhole
 			if (!holePairs.TryGetValue(__instance, out BlackHole holePair) || holePair == null) return true;
 
 			if (collision.layer == LayerMask.NameToLayer("wall"))
-			{
 				return TeleportPlatform(collidedObject, __instance);
-			}
 
 			Plugin.logger.LogWarning($"{collidedObject}: {string.Join("\n", collidedObject.GetComponents<object>())}");
 
-			if (collision.layer != (int)playerLayerField.GetValue(__instance))
-			{
-				if (collision.colliderPP.monobehaviourCollider.inverseMass <= Fix.Zero) return true;
+			if (collision.layer == (int)playerLayerField.GetValue(__instance))
+				return TeleportPlayer(collidedObject, holePair);
 
+			if (collision.colliderPP.monobehaviourCollider.inverseMass > Fix.Zero)
 				return TeleportObject(collidedObject, holePair);
-			}
 
-			return TeleportPlayer(collidedObject, holePair);
+			return true;
 		}
 
 		internal static void BlackHoleGrow_Postfix(BlackHole __instance)
