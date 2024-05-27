@@ -25,9 +25,9 @@ namespace BoplUtils
 			return canvas;
 		}
 
-		public static string ToString<T>(this IEnumerable<T> enumerable)
+		public static string ToString<T>(this IEnumerable<T> enumerable, string separator = ", ")
 		{
-			return $"{{ {string.Join(", ", enumerable)} }}";
+			return $"{{ {string.Join(separator, enumerable)} }}";
 		}
 	}
 }
