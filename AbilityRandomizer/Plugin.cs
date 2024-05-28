@@ -36,6 +36,11 @@ namespace AbilityRandomizer
 			);
 
 			harmony.Patch(
+				AccessTools.Method(typeof(RopeBody), nameof(RopeBody.Dettach)),
+				postfix: new(typeof(Patches), nameof(Patches.Dettach_Postfix))
+			);
+
+			harmony.Patch(
 				AccessTools.Method(typeof(Rope), "CheckIfDestroyed"),
 				postfix: new(typeof(Patches), nameof(Patches.RopeCheckIfDestroyed_Postfix))
 			);
@@ -158,8 +163,13 @@ namespace AbilityRandomizer
 			if (!ropeBodies.TryGetValue(__instance, out RopeBody ropeBody)) return;
 			ropeBodies.Remove(__instance);
 
-			if (!ropeSlots.TryGetValue(ropeBody, out HookshotInstant hookshotInstant)) return;
-			ropeSlots.Remove(ropeBody);
+			Dettach_Postfix(ropeBody);
+		}
+
+		internal static void Dettach_Postfix(RopeBody __instance)
+		{
+			if (!ropeSlots.TryGetValue(__instance, out HookshotInstant hookshotInstant)) return;
+			ropeSlots.Remove(__instance);
 
 			ChangeAbility(hookAbilityField.GetValue(hookshotInstant) as InstantAbility);
 		}
