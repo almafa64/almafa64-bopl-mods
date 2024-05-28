@@ -98,12 +98,14 @@ namespace Wormhole
 			return false;
 		}
 
-		private static bool TeleportPlatform(GameObject collidedObject, BlackHole blackHole)
+		private static bool TeleportPlatform(GameObject collidedObject, BlackHole pair)
 		{
-			// --- walls ---
-			/*// ToDo set platform position
-			PlatformApi.PlatformApi.SetPos();
-			PlatformApi.PlatformApi.SetHome();*/
+			BoplBody body = collidedObject.GetComponent<BoplBody>();
+
+			Vec2 pos = pair.dCircle.position + Vec2.NormalizedSafe(body.velocity) * pair.dCircle.radius;
+
+			PlatformApi.PlatformApi.SetPos(collidedObject, pos);
+			PlatformApi.PlatformApi.SetHome(collidedObject, pos);
 
 			return false;
 		}
