@@ -73,7 +73,9 @@ namespace Wormhole
 			PlayerBody playerBody = bodyField.GetValue(playerCollision) as PlayerBody;
 			PlayerPhysics physics = physicsField.GetValue(playerCollision) as PlayerPhysics;
 
-			physics?.UnGround(true, false); // if physics null then player is drilling
+			playerBody.ropeBody?.Dettach(true); // dettach rope
+			physics?.UnGround(true, false); // if physics null then player is drilling else unground player
+
 			playerBody.position = pair.dCircle.position + Vec2.NormalizedSafe(playerBody.Velocity) * pair.dCircle.radius;
 
 			// exit roll if rolling
@@ -136,9 +138,7 @@ namespace Wormhole
 			if (!holePairs.TryGetValue(__instance, out BlackHole holePair) || holePair == null) return true;
 
 			if (collision.layer == LayerMask.NameToLayer("wall"))
-				return TeleportPlatform(collidedObject, __instance);
-
-			Plugin.logger.LogWarning($"{collidedObject}: {string.Join("\n", collidedObject.GetComponents<object>())}");
+				return TeleportPlatform(collidedObject, holePair);
 
 			if (collision.layer == (int)playerLayerField.GetValue(__instance))
 				return TeleportPlayer(collidedObject, holePair);
