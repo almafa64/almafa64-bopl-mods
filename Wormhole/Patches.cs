@@ -171,12 +171,37 @@ namespace Wormhole
 			// ---- debug ----
 			LineRenderer lineRenderer = __instance.gameObject.AddComponent<LineRenderer>();
 			lineRenderer.material = new Material(Shader.Find("Hidden/Internal-Colored"));
-			lineRenderer.endColor = lineRenderer.startColor = Color.red;
+			lineRenderer.endColor = lineRenderer.startColor = Color.black;
 			lineRenderer.endWidth = lineRenderer.startWidth = 0.2f;
 			lineRenderer.positionCount = 2;
 
 			RemoveConnection(__instance, true);
 			ConnectToEmptyPair(__instance, true);
+
+			//if (!holePairs.TryGetValue(__instance, out BlackHole holePair) || holePair == null) return;
+
+			/*Vec2 vec = Vec2.NormalizedSafe(holePair.dCircle.position - __instance.dCircle.position);
+			GameObject gameObject = FixTransform.InstantiateFixed(Plugin.sparkLightningPrefab, __instance.dCircle.position);
+			gameObject.SetActive(false);
+			this.lightningLine = gameObject.GetComponent<DPhysicsBox>();
+			this.lightningLineFixTrans = gameObject.GetComponent<FixTransform>();
+			this.lightningLineFixTrans.up = vec;
+			this.UpdateLightningLine();
+			this.lightningLineFixTrans.SyncTransform();
+			AudioManager.Get().Play("loadLightning");
+			//this.lightningLine.GetComponent<StretchableLightning>().InitLightning(this.id);*/
+
+			/*Vector3 vector = __instance.transform.position - (Vector3)holePair.dCircle.position;
+			if (vector.sqrMagnitude > 0f)
+			{
+				ParticleSystem.VelocityOverLifetimeModule velocityOverLifetime = Object.Instantiate<ParticleSystem>(
+					Plugin.sparkLightningPrefab.GetComponent<ParticleSystem>(),
+					(Vector3)__instance.dCircle.position, Quaternion.identity).velocityOverLifetime;
+				velocityOverLifetime.orbitalOffsetX = vector.x;
+				velocityOverLifetime.orbitalOffsetY = vector.y;
+				float num = 0.25f;
+				velocityOverLifetime.radial = -vector.magnitude / num;
+			}*/
 		}
 
 		internal static void BlackHoleInit_Postfix(BlackHole __instance)

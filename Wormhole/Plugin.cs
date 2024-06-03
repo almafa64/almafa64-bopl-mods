@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using System.Linq;
 using UnityEngine;
 
 namespace Wormhole
@@ -12,6 +13,8 @@ namespace Wormhole
 	{
 		internal static Harmony harmony;
 		internal static ManualLogSource logger;
+
+		internal static GameObject sparkLightningPrefab;
 
 		private void Awake()
 		{
@@ -42,6 +45,12 @@ namespace Wormhole
 				AccessTools.Method(typeof(SmokeGrenadeExplode2), nameof(SmokeGrenadeExplode2.OnCollide)),
 				prefix: new(typeof(Patches), nameof(Patches.SmokeOnCollide_Prefix))
 			);
+		}
+
+		void Start()
+		{
+			//sparkLightningPrefab = Resources.FindObjectsOfTypeAll<GameObject>().First(e => e.name == "BetweenPortals_Particle");
+			sparkLightningPrefab = Resources.FindObjectsOfTypeAll<GameObject>().First(e => e.name == "Chain_Lightning");
 		}
 
 		void Update()
