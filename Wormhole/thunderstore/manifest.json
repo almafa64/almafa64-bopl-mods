@@ -1,0 +1,10 @@
+{
+    "name": "Wormhole",
+    "version_number": "1.0.0",
+    "website_url": "https://github.com/almafa64/almafa64-bopl-mods/tree/master/Wormhole",
+    "description": "Blackhole teleports player to whitehole",
+    "dependencies": [
+        "BepInEx-BepInExPack-5.4.2100",
+        "DavidLovesJellyCarWorlds-PlatformApi-1.0.7"
+    ]
+}

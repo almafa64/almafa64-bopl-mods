@@ -174,6 +174,8 @@ namespace BoplModSyncer
 				}
 			}
 
+			if (bindMethod == null) throw new System.NullReferenceException("No bind method was found");
+
 			// guid,ver,link,hash|
 			string[] hostMods = hostModListText.Split(['|'], System.StringSplitOptions.RemoveEmptyEntries);
 			OnlineModData[] toInstallMods = new OnlineModData[hostMods.Length];
@@ -185,16 +187,18 @@ namespace BoplModSyncer
 				string[] datas = hostMod.Split(',');
 				OnlineModData modData = new(datas[0], datas[1], datas[2], datas[3]);
 
-				HostConfigEntry[] configEntries = hostConfigs[modData.Guid];
-				ConfigFile config = new(Path.Combine(Paths.ConfigPath, modData.Guid + ".cfg"), true);
-
-				foreach (HostConfigEntry entry in configEntries)
+				if (hostConfigs.TryGetValue(modData.Guid, out HostConfigEntry[] configEntries))
 				{
-					object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, 0, null]);
-					(configEntry as ConfigEntryBase).SetSerializedValue(entry.Value);
-				}
+					ConfigFile config = new(Path.Combine(Paths.ConfigPath, modData.Guid + ".cfg"), true);
 
-				config.Save();
+					foreach (HostConfigEntry entry in configEntries)
+					{
+						object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, 0, null]);
+						(configEntry as ConfigEntryBase).SetSerializedValue(entry.Value);
+					}
+
+					config.Save();
+				}
 
 				// if guid is in local mods and hash is same then skip
 				if (Plugin.mods.TryGetValue(modData.Guid, out LocalModData mod) && mod.Hash == modData.Hash)
@@ -292,9 +296,9 @@ namespace BoplModSyncer
 			foreach (KeyValuePair<string, LocalModData> mod in Plugin.mods)
 			{
 				ConfigFile config = mod.Value.Plugin.Instance.Config;
-
 				List<KeyValuePair<ConfigEntryBase, string>> newConfigEntries = [];
-				HostConfigEntry[] hostEntries = hostConfigs[mod.Key];
+
+				if (!hostConfigs.TryGetValue(mod.Key, out HostConfigEntry[] hostEntries)) continue;
 
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{

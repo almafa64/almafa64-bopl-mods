@@ -86,15 +86,17 @@ namespace BoplTranslator
 
 				// add readed languages
 				LanguageSelector selector = lang.AddComponent<LanguageSelector>();
-				foreach (string[] words in LanguagePatch.languages)
+				foreach (CustomLanguage customLang in LanguagePatch.languages)
 				{
-					selector.languageNames.Add(words[0]);
+					selector.languageNames.Add(customLang.translations[0]);
 				}
+
 				if (lastCustomLanguageCode.Value == "")
 				{
 					lastCustomLanguageCode.Value = selector.languageNames[0];
 					Config.Save();
 				}
+
 				selector.langMenu = langMenu;
 				selector.Init();
 

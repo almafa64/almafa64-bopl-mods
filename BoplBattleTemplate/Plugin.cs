@@ -52,17 +52,20 @@ namespace BoplBattleTemplate
 
 	class Patches
 	{
-		public static void SpawnPlayers_Postfix()
+		// called on every level
+		internal static void SpawnPlayers_Postfix()
 		{
 			Plugin.logger.LogMessage("Spawned players");
 		}
 
-		public static void OnEnterLobby_Postfix(Lobby lobby)
+		// called after each joined player
+		internal static void OnEnterLobby_Postfix(Lobby lobby)
 		{
 			Plugin.logger.LogWarning($"you are {(SteamManager.LocalPlayerIsLobbyOwner ? "" : "not ")}the owner");
 		}
 
-		public static void GameSessionInit_Postfix()
+		// called at the beginning of first level
+		internal static void GameSessionInit_Postfix()
 		{
 			Plugin.logger.LogWarning($"lobby is {(GameLobby.isOnlineGame ? "" : "not ")}online, and you are {(SteamManager.LocalPlayerIsLobbyOwner ? "" : "not ")}the owner");
 		}

@@ -21,6 +21,7 @@ All mods need **BepInEx** Version **5.4.22**
 - **ModSettingsMenu** (0.1.0): Adds a settings menu into the game for easier mod configuration
 - **NoAutoShrink** (1.0.0): Stops the game from auto shrinking big platforms
 - **AbilityRandomizer** (1.0.0): Randomizes ability slot after usage
+- **Wormhole** (1.0.0): Travel from a blackhole to a whitehole
 
 ## Installation
 Need help to install BepInEx?<br>

@@ -1,10 +1,11 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace BoplUtils
 {
-	public class Utils
+	public static class BoplUtils
 	{
 		public static GameObject GetCanvas()
 		{
@@ -22,6 +23,11 @@ namespace BoplUtils
 			scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
 
 			return canvas;
+		}
+
+		public static string ToString<T>(this IEnumerable<T> enumerable, string separator = ", ")
+		{
+			return $"{{ {string.Join(separator, enumerable)} }}";
 		}
 	}
 }

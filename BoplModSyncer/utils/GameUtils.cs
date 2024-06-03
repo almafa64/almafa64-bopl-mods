@@ -184,7 +184,7 @@ namespace BoplModSyncer.Utils
 		{
 			Dictionary<string, HostConfigEntry[]> hostConfigs = [];
 
-			foreach (string mod in hostConfigListText.Split('\\'))
+			foreach (string mod in hostConfigListText.Split(['\\'], StringSplitOptions.RemoveEmptyEntries))
 			{
 				string[] guidSplit = mod.Split([':'], 2);
 				string[] configSplit = guidSplit[1].Split('\n');
