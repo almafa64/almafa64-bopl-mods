@@ -56,7 +56,7 @@ namespace BoplTranslator
 			if (name == "MainMenu")
 			{
 				// dont create selector if there is no custom language
-				if (LanguagePatch.languages.Count == 0)
+				if (LanguagePatch.customLanguages.Count == 0)
 				{
 					if ((int)Settings.Get().Language > Utils.MaxOfEnum<Language>()) Settings.Get().Language = 0;
 					yield break;
@@ -86,7 +86,7 @@ namespace BoplTranslator
 
 				// add readed languages
 				LanguageSelector selector = lang.AddComponent<LanguageSelector>();
-				foreach (CustomLanguage customLang in LanguagePatch.languages)
+				foreach (CustomLanguage customLang in LanguagePatch.customLanguages)
 				{
 					selector.languageNames.Add(customLang.translations[0]);
 				}

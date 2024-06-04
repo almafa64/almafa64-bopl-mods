@@ -15,7 +15,7 @@ namespace BoplTranslator
 
 	public class CustomLanguage
 	{
-		public string Name { get; private set; }
+		public string Name { get; internal set; }
 		public GameFont Font { get; internal set; }
 		public bool Stroke { get; internal set; }
 
@@ -24,7 +24,7 @@ namespace BoplTranslator
 
 		internal CustomLanguage(string name, string[] translations, GameFont font = GameFont.English, bool stroke = false)
 		{
-			if (LanguagePatch.languages.Any(e => e.Name == name))
+			if (LanguagePatch.customLanguages.Any(e => e.Name == name))
 				throw new System.ArgumentException($"Translation with '{name}' name already exists!");
 
 			Name = name;
