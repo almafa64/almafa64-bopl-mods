@@ -132,8 +132,6 @@ namespace BoplTranslator
 			foreach (FileInfo file in Plugin.translationsDir.EnumerateFiles())
 			{
 				string[] words = new string[translationKeys.Length];
-				CustomLanguage language = new(words);
-				languages.Add(language);
 
 				foreach (string line in File.ReadLines(file.FullName))
 				{
@@ -148,6 +146,9 @@ namespace BoplTranslator
 
 					words[index] = value;
 				}
+
+				CustomLanguage language = new(words[0], words);
+				languages.Add(language);
 
 				for (int i = 0; i < words.Length; i++)
 				{
@@ -179,35 +180,21 @@ namespace BoplTranslator
 
 			CustomLanguage customLanguage = GetCustomLanguage(lang);
 
-			switch (customLanguage.font)
+			switch (customLanguage.Font)
 			{
-				case BopLTranslator.Font.English: lang = Language.EN; break;
-				case BopLTranslator.Font.Japan: lang = Language.JP; break;
-				case BopLTranslator.Font.Korean: lang = Language.KO; break;
-				case BopLTranslator.Font.Russian: lang = Language.RU; break;
-				case BopLTranslator.Font.Chinese: lang = Language.ZHCN; break;
-				case BopLTranslator.Font.Poland: lang = Language.PL; break;
+				case GameFont.English: lang = Language.EN; break;
+				case GameFont.Japan: lang = Language.JP; break;
+				case GameFont.Korean: lang = Language.KO; break;
+				case GameFont.Russian: lang = Language.RU; break;
+				case GameFont.Chinese: lang = Language.ZHCN; break;
+				case GameFont.Poland: lang = Language.PL; break;
 			}
 
-			useFontWithStroke = customLanguage.stroke;
+			useFontWithStroke = customLanguage.Stroke;
 		}
 
 		private static bool IsCustomLanguage(Language lang) => (int)lang > OGLanguagesCount;
 
 		private static CustomLanguage GetCustomLanguage(Language lang) => languages[(int)lang - OGLanguagesCount - 1];
-	}
-
-	class CustomLanguage
-	{
-		internal string[] translations;
-		internal BopLTranslator.Font font;
-		internal bool stroke;
-
-		internal CustomLanguage(string[] translations, BopLTranslator.Font font = BopLTranslator.Font.English, bool stroke = false)
-		{
-			this.translations = translations;
-			this.font = font;
-			this.stroke = stroke;
-		}
 	}
 }
