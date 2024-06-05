@@ -48,13 +48,12 @@ namespace BoplTranslator
 
 		private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
-			StartCoroutine(TimeoutSceneLoad(scene.name));
+			if (scene.name == "MainMenu")
+				StartCoroutine(TimeoutSceneLoad());
 		}
 
-		private IEnumerator TimeoutSceneLoad(string name)
+		private IEnumerator TimeoutSceneLoad()
 		{
-			if (name == "MainMenu")
-			{
 				// dont create selector if there is no custom language
 				if (LanguagePatch.customLanguages.Count == 0)
 				{
@@ -62,7 +61,7 @@ namespace BoplTranslator
 					yield break;
 				}
 
-				// idk why but if there is no timeout it will crash
+			// idk why but without timeout it crashes
 				yield return new WaitForSeconds(0.05f);
 
 				// create button for custom language selector
@@ -88,7 +87,7 @@ namespace BoplTranslator
 				LanguageSelector selector = lang.AddComponent<LanguageSelector>();
 				foreach (CustomLanguage customLang in LanguagePatch.customLanguages)
 				{
-					selector.languageNames.Add(customLang.translations[0]);
+				selector.languageNames.Add(customLang.Name);
 				}
 
 				if (lastCustomLanguageCode.Value == "")
@@ -131,8 +130,6 @@ namespace BoplTranslator
 				click.RemoveAllListeners();
 				click.AddListener(selector.Click);
 			}
-			else yield break;
-		}
 	}
 
 	public class LanguageSelector : MonoBehaviour, IMenuItem
