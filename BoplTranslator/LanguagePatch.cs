@@ -147,7 +147,9 @@ namespace BoplTranslator
 				for (int i = 0; i < translations.Length; i++)
 				{
 					// add dict entry by searching for original text in _translationLookUp and using the key from it
-					int valueIndex = translationValues.IndexOf(table.en[i]);
+					string text = table.en[i];
+					int valueIndex = translationValues.FindIndex(e => e == text);
+					if (valueIndex == -1) continue;
 					language.translationPairs.Add(translationKeys[valueIndex], translations[i]);
 				}
 
