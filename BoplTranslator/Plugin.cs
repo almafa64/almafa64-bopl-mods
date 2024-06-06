@@ -22,6 +22,7 @@ namespace BoplTranslator
 		internal static DirectoryInfo translationsDir;
 		internal static ConfigFile config;
 		internal static ConfigEntry<string> lastCustomLanguageCode;
+		internal static ConfigEntry<Language> fallbackLanguage;
 		internal static ManualLogSource logger;
 
 		private void Awake()
@@ -33,6 +34,7 @@ namespace BoplTranslator
 			logger = Logger;
 			config = Config;
 			lastCustomLanguageCode = Config.Bind("store", "last_custom_language_code", "", "dont modify pls");
+			fallbackLanguage = Config.Bind("settings", "fallback language", Language.EN, new ConfigDescription("The built-in language to use when translation is not found", new AcceptableValueRange<Language>((Language)Utils.MinOfEnum<Language>(), (Language)Utils.MaxOfEnum<Language>())));
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 

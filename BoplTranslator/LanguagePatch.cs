@@ -207,15 +207,17 @@ namespace BoplTranslator
 
 				language.Name = languageName;
 
+				CustomLanguage fallbackLanguage = BoplTranslator.GetCustomLanguage(Plugin.fallbackLanguage.Value);
+
 				for (int i = 0; i < words.Length; i++)
 				{
 					string word = words[i];
 					if (word != null) continue;
 
-					// word at i index was left out of translation file -> add default value
+					// word at i index was left out of translation file -> add default value from fallback language
 
 					string key = translationKeys[i];
-					string defaultText = _translationLookUp.GetValueSafe(key);
+					string defaultText = fallbackLanguage.translationPairs.GetValueSafe(key);
 
 					language.translationPairs.Add(key, defaultText);
 
