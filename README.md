@@ -11,7 +11,7 @@ All of my mods for [Bopl Battle](https://store.steampowered.com/app/1686940/Bopl
 ## Mods info
 All mods need **BepInEx** Version **5.4.22**
 - **BoplBattleTemplate**: Base of all my mods. More advanced version of [shad0w_dev's](https://discord.com/channels/1175164882388275310/1177300281705365676/1177333041048334336) (thanks shad0w_dev)
-- **BoplTranslator** (1.1.1): Custom translation support.
+- **BoplTranslator** (2.0.0): Custom translation support.
 - **BoplModSyncer** (1.0.0): Checks if every client has mods (maybe downloads missing).
 - **AtomGrenade** (1.0.3): Set power in config. Changes texture if power is bigger than normal.
 - **NoMapBounds** (1.0.0): Removes map bounds.
@@ -20,7 +20,7 @@ All mods need **BepInEx** Version **5.4.22**
 - **RecursiveGrenade** (0.1.0): Grenades explode into more grenades
 - **ModSettingsMenu** (0.1.0): Adds a settings menu into the game for easier mod configuration
 - **NoAutoShrink** (1.0.0): Stops the game from auto shrinking big platforms
-- **AbilityRandomizer** (1.0.0): Randomizes ability slot after usage
+- **AbilityRandomizer** (1.0.2): Randomizes ability slot after usage
 - **Wormhole** (1.0.0): Travel from a blackhole to a whitehole
 
 ## Installation

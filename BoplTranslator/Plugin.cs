@@ -34,7 +34,7 @@ namespace BoplTranslator
 			logger = Logger;
 			config = Config;
 			lastCustomLanguageCode = Config.Bind("store", "last_custom_language_code", "", "dont modify pls");
-			fallbackLanguage = Config.Bind("settings", "fallback language", Language.EN, new ConfigDescription("The built-in language to use when translation is not found", new AcceptableValueRange<Language>((Language)Utils.MinOfEnum<Language>(), (Language)Utils.MaxOfEnum<Language>())));
+			fallbackLanguage = Config.Bind("settings", "fallback language", Language.EN, new ConfigDescription("The built-in language to use when translation is not found", new AcceptableLanguageRange()));
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 
@@ -59,7 +59,8 @@ namespace BoplTranslator
 				// dont create selector if there is no custom language
 				if (LanguagePatch.customLanguages.Count == 0)
 				{
-					if ((int)Settings.Get().Language > Utils.MaxOfEnum<Language>()) Settings.Get().Language = 0;
+				if ((int)Settings.Get().Language > LanguagePatch.OGLanguagesCount)
+					Settings.Get().Language = fallbackLanguage.Value;
 					yield break;
 				}
 
@@ -225,6 +226,14 @@ namespace BoplTranslator
 			langMenu.GetComponent<MainMenu>().DisableAll();
 			AudioManager.Get().Play("return3");
 			Plugin.lastCustomLanguageCode.Value = languageNames[OptionIndex];
+		}
+	}
+
+	class AcceptableLanguageRange() : AcceptableValueRange<Language>((Language)Utils.MinOfEnum<Language>(), (Language)Utils.MaxOfEnum<Language>())
+	{
+		public override string ToDescriptionString()
+		{
+			return $"# Acceptable langauges: {string.Join(", ", Enum.GetNames(typeof(Language)))}";
 		}
 	}
 }

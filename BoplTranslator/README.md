@@ -1,12 +1,12 @@
 # Bopl Translator
 
-Custom translations for every text
+A new guid based translation system + custom translation support.
 
 ## Setup
-place translation txts into Translations folder next to dll (or make new folder if it doesn't exists)
+Place translation txts into translations folder next to dll (or make new folder if it doesn't exists).
 
-## ToDo
-- API for mods to make custom texts translatable
+## Configs
+Use `fallback language` to change which language to use when no translation is found for guid.
 
 ## English example translation
 ```
@@ -105,3 +105,33 @@ item_grappling_hook = grappling hook
 item_drill = drill
 item_beam = beam
 ```
+
+## API
+
+### Make a new translation
+```cs
+CustomLanguage english = BoplTranslator.GetCustomLanguage(Language.EN);
+english.AddText("com.almafa64.custom_gun_ability", "balloon gun");
+```
+**Note**: `BoplTranslator.GetCustomLanguage(Language language)` gets the `CustomLanguage` associated with `language`. Because of how enums work in c# this parameter can be bigger than `Language` last element (13), when this happens it gets a user made language.
+
+### Make a new language
+```cs
+CustomLanguage myLanguage = new CustomLanguage("HU");
+
+Dictionary<string, string> hunTranslations = new Dictionary<string, string>()
+{
+	{ "menu_exit", "Kilépés" },
+	{ "screen_fullscreen", "Teljes képernyõ" }
+};
+
+myLanguage.EditTexts(hunTranslations);
+```
+**Note**: `new CustomLanguage(string name, GameFont font)` copies fallback language (which was set in config) into itself, so you can edit every in-game text (see above for all in-game text) by default.
+
+### Make a `TextMeshProUGUI` / `TextMesh` translatable
+```cs
+GameObject gun = GameObject.Find("Balloon Gun nameplate");
+BoplTranslator.AttachLocalizedText(gun, "com.almafa64.custom_gun_ability", true);
+```
+**Note**: Before any call to `BoplTranslator.AttachLocalizedText` make sure you make all translations needed with `language.AddText` (it won't break, but `AddText` doesn't update `LocalizedText`s).

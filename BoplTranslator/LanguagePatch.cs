@@ -112,8 +112,6 @@ namespace BoplTranslator
 		internal static int OGLanguagesCount { get; private set; }
 
 		internal static readonly FieldInfo textField = typeof(LocalizedText).GetField("enText", AccessTools.all);
-
-		private static CustomLanguage english;
 		
 		internal static void Init()
 		{
@@ -141,9 +139,10 @@ namespace BoplTranslator
 
 			LocalizationTable table = Resources.FindObjectsOfTypeAll<LocalizationTable>()[0];
 
-			CustomLanguage MakeCustomFromBuiltIn(string[] translations, GameFont font)
+			void MakeCustomFromBuiltIn(string[] translations, GameFont font)
 			{
-				CustomLanguage language = new(translations[0], font);
+				CustomLanguage language = new(translations[0], font, false);
+
 				for (int i = 0; i < translations.Length; i++)
 				{
 					// add dict entry by searching for original text in _translationLookUp and using the key from it
@@ -154,11 +153,10 @@ namespace BoplTranslator
 				}
 
 				ogLanguages.Add(language);
-				return language;
 			}
 
 			/// IMPORTANT: order is based on <see cref="Language"/> 
-			english = MakeCustomFromBuiltIn(table.en, GameFont.English);
+			MakeCustomFromBuiltIn(table.en, GameFont.English);
 			MakeCustomFromBuiltIn(table.de, GameFont.English);
 			MakeCustomFromBuiltIn(table.es, GameFont.English);
 			MakeCustomFromBuiltIn(table.fr, GameFont.English);
@@ -179,7 +177,7 @@ namespace BoplTranslator
 			{
 				string[] words = new string[translationKeys.Length];
 
-				CustomLanguage language = new("");
+				CustomLanguage language = new("", GameFont.English, false);
 
 				foreach (string line in File.ReadLines(file.FullName))
 				{
