@@ -180,7 +180,6 @@ namespace BoplTranslator
 			{
 				Plugin.logger.LogInfo($"Reading \"{file.Name}\"");
 
-				string[] words = new string[translationKeys.Length];
 				Dictionary<string, string> translations = [];
 
 				foreach (string line in File.ReadLines(file.FullName))
@@ -194,11 +193,6 @@ namespace BoplTranslator
 					string value = splitted[1].Trim().Replace(@"\n", "\n");
 
 					translations[key] = value;
-
-					int index = System.Array.FindIndex(translationKeys, e => e.Equals(key));
-					if (index == -1) continue;
-
-					words[index] = value;
 				}
 
 				if (!translations.TryGetValue("menu_language", out string languageName))
@@ -210,21 +204,17 @@ namespace BoplTranslator
 				CustomLanguage language = new(languageName, GameFont.English, false);
 				language.EditTranslations(translations);
 
-				for (int i = 0; i < words.Length; i++)
+				foreach (string key in translationKeys)
 				{
-					string word = words[i];
-					if (word != null) continue;
-
-					string key = translationKeys[i];
 					if (language.translationPairs.ContainsKey(key)) continue;
 
-					// word at i index was left out of translation file -> add default value from fallback language
+					// translation at i index was left out of translation file -> add default value from fallback language
 
 					string defaultText = fallbackLanguage.GetTranslation(key);
 					language.translationPairs.Add(key, defaultText);
 
 					if (!key.StartsWith("undefined"))
-						Plugin.logger.LogWarning($"No translation for \"{translationKeys[i]}\" in \"{file.Name}\"");
+						Plugin.logger.LogWarning($"No translation for \"{key}\" in \"{file.Name}\"");
 				}
 
 				if(!language.IsReferenced) customLanguages.Add(language);
