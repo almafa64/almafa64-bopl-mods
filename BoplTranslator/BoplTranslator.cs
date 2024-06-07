@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using UnityEngine;
 
@@ -20,100 +19,80 @@ namespace BoplTranslator
 	public class CustomLanguage
 	{
 		public string Name { get; internal set; }
-		public GameFont Font { get; internal set; }
+		public GameFont Font { get; private set; }
+		public bool IsReferenced { get; private set; } = false;
+
+		/// <summary>
+		/// Creates a new <see cref="CustomLanguage"/> with fallback language (default english) translations
+		/// If language is already present than it'll reference it while discarding parameters
+		/// </summary>
+		/// <param name="name">name of langauge. Will be converted to lowercase</param>
+		/// <param name="font"></param>
+		public CustomLanguage(string name, GameFont font = GameFont.English) : this(name, font, true) { }
+
+		/// <summary>
+		/// Get a translation
+		/// </summary>
+		/// <param name="guid">translation guid</param>
+		/// <returns>translation text</returns>
+		public string GetTranslation(string guid) => translationPairs[guid];
+
+		/// <summary>
+		/// Edit/Add a translation
+		/// </summary>
+		/// <param name="guid">translation guid</param>
+		/// <param name="newTranslation">translation text. Will be converted to lowercase</param>
+		public void EditTranslation(string guid, string newTranslation)
+		{
+			translationPairs[guid] = newTranslation.ToLower();
+		}
+
+		public string this[string guid]
+		{
+			get => GetTranslation(guid);
+			set => EditTranslation(guid, value);
+		}
+
+		/// <summary>
+		/// Edit multiple translation with a guid-translation dictionary
+		/// </summary>
+		/// <param name="guidTranslationPair">guid-translation dictionary</param>
+		public void EditTranslations(Dictionary<string, string> guidTranslationPair)
+		{
+			foreach (KeyValuePair<string, string> pair in guidTranslationPair)
+			{
+				translationPairs[pair.Key] = pair.Value.ToLower();
+			}
+		}
 
 		internal Dictionary<string, string> translationPairs = [];
 
 		internal CustomLanguage(string name, GameFont font, bool copyFallback)
 		{
-			if (LanguagePatch.customLanguages.Any(e => e.Name == name))
-				throw new System.ArgumentException($"Translation with '{name}' name already exists!");
+			name = name.ToLower();
 
-			Name = name.ToLower();
+			CustomLanguage language = BoplTranslator.GetCustomLanguage(name);
+			if (language != null)
+			{
+				Name = language.Name;
+				Font = language.Font;
+				translationPairs = language.translationPairs;
+				IsReferenced = true;
+				return;
+			}
+
+			Name = name;
 			Font = font;
 
+			// should only run if user creates new language with API
 			if (!copyFallback) return;
-			CustomLanguage fallback = BoplTranslator.GetCustomLanguage(Plugin.fallbackLanguage.Value);
+			CustomLanguage fallback = LanguagePatch.fallbackLanguage;
 			translationPairs = new Dictionary<string, string>(fallback.translationPairs)
 			{
-				["menu_language"] = Name
+				["menu_language"] = name
 			};
-		}
 
-		/// <summary>
-		/// Creates a new <see cref="CustomLanguage"/> with fallback language (default english) values
-		/// </summary>
-		/// <param name="name"></param>
-		/// <param name="font"></param>
-		/// <exception cref="System.ArgumentException"></exception>
-		public CustomLanguage(string name, GameFont font = GameFont.English) : this(name, font, true) { }
-
-		/// <summary>
-		/// Adds a new translation
-		/// </summary>
-		/// <param name="guid">translation guid</param>
-		/// <param name="text">translation text</param>
-		/// <returns>true if run without exceptions</returns>
-		public bool AddText(string guid, string text)
-		{
-			try
-			{
-				translationPairs.Add(guid.ToLower(), text.ToLower());
-				return true;
-			}
-			catch (ArgumentException) { return false; }
-		}
-
-		/// <summary>
-		/// Adds multiple translation with a guid-translation dictionary
-		/// </summary>
-		/// <param name="guidTextPair">guid-translation dictionary</param>
-		/// <returns>true if run without exceptions</returns>
-		public bool AddTexts(Dictionary<string, string> guidTextPair)
-		{
-			try
-			{
-				foreach (KeyValuePair<string, string> pair in guidTextPair)
-				{
-					translationPairs.Add(pair.Key.ToLower(), pair.Value.ToLower());
-				}
-				return true;
-			}
-			catch (ArgumentException) { return false; }
-		}
-
-		/// <summary>
-		/// Edits a translation by <paramref name="guid"/>
-		/// </summary>
-		/// <param name="guid">translation guid</param>
-		/// <param name="newText">translation text</param>
-		/// <returns>true if run without exceptions</returns>
-		public bool EditText(string guid, string newText)
-		{
-			try
-			{
-				translationPairs[guid.ToLower()] = newText.ToLower();
-				return true;
-			}
-			catch (ArgumentException) { return false; }
-		}
-
-		/// <summary>
-		/// Edits multiple translation with a guid-translation dictionary
-		/// </summary>
-		/// <param name="guidTextPair">guid-translation dictionary</param>
-		/// <returns>true if run without exceptions</returns>
-		public bool EditTexts(Dictionary<string, string> guidTextPair)
-		{
-			try
-			{
-				foreach (KeyValuePair<string, string> pair in guidTextPair)
-				{
-					translationPairs[pair.Key.ToLower()] = pair.Value.ToLower();
-				}
-				return true;
-			}
-			catch (ArgumentException) { return false; }
+			LanguagePatch.customLanguages.Add(this);
 		}
 	}
 
@@ -126,8 +105,7 @@ namespace BoplTranslator
 		{
 			foreach (var text in Resources.FindObjectsOfTypeAll<LocalizedText>())
 			{
-				if (LanguagePatch.textField.GetValue(text) as string != null)
-					text.UpdateText();
+				text.UpdateText();
 			}
 		}
 
@@ -144,6 +122,20 @@ namespace BoplTranslator
 		/// <param name="lang">(can be bigger than max of <see cref="Language"/>)</param>
 		public static CustomLanguage GetCustomLanguage(Language lang) =>
 			lang.IsCustomLanguage() ? LanguagePatch.GetCustomLanguage(lang) : LanguagePatch.ogLanguages[(int)lang];
+
+		/// <summary>
+		/// Gets <see cref="CustomLanguage"/> associated with <paramref name="langName"/>
+		/// </summary>
+		/// <param name="langName">name of the language</param>
+		public static CustomLanguage GetCustomLanguage(string langName)
+		{
+			langName = langName.ToLower();
+
+			CustomLanguage og = LanguagePatch.ogLanguages.Find(e => e.Name == langName);
+			if(og != null) return og;
+
+			return LanguagePatch.customLanguages.Find(e => e.Name == langName);
+		}
 
 		/// <summary>
 		/// Gets currently selected <see cref="CustomLanguage"/>

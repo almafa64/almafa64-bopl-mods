@@ -111,9 +111,18 @@ item_beam = beam
 ### Make a new translation
 ```cs
 CustomLanguage english = BoplTranslator.GetCustomLanguage(Language.EN);
-english.AddText("com.almafa64.custom_gun_ability", "balloon gun");
+english.EditTranslation("com.almafa64.custom_gun_ability", "balloon gun");
+// or english["com.almafa64.custom_gun_ability"] = "balloon gun";
 ```
 **Note**: `BoplTranslator.GetCustomLanguage(Language language)` gets the `CustomLanguage` associated with `language`. Because of how enums work in c# this parameter can be bigger than `Language` last element (13), when this happens it gets a user made language.
+
+### Get a translation
+```cs
+CustomLanguage english = BoplTranslator.GetCustomLanguage("en");
+string customGunName = english.GetTranslation("com.almafa64.custom_gun_ability");
+// or string customGunName = english["com.almafa64.custom_gun_ability"];
+```
+**Note**: You can use `BoplTranslator.GetCustomLanguage(string langName)` to get language by name.
 
 ### Make a new language
 ```cs
@@ -125,7 +134,7 @@ Dictionary<string, string> hunTranslations = new Dictionary<string, string>()
 	{ "screen_fullscreen", "Teljes képernyõ" }
 };
 
-myLanguage.EditTexts(hunTranslations);
+myLanguage.EditTranslations(hunTranslations);
 ```
 **Note**: `new CustomLanguage(string name, GameFont font)` copies fallback language (which was set in config) into itself, so you can edit every in-game text (see above for all in-game text) by default.
 

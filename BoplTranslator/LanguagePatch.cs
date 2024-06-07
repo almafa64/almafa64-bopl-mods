@@ -110,6 +110,7 @@ namespace BoplTranslator
 		internal static readonly List<CustomLanguage> ogLanguages = [];
 		internal static readonly List<CustomLanguage> customLanguages = [];
 		internal static int OGLanguagesCount { get; private set; }
+		internal static CustomLanguage fallbackLanguage;
 
 		internal static readonly FieldInfo textField = typeof(LocalizedText).GetField("enText", AccessTools.all);
 		
@@ -171,13 +172,16 @@ namespace BoplTranslator
 			MakeCustomFromBuiltIn(table.zhcn, GameFont.Chinese);
 			MakeCustomFromBuiltIn(table.zhtw, GameFont.Chinese);
 
+			fallbackLanguage = BoplTranslator.GetCustomLanguage(Plugin.fallbackLanguage.Value);
+
 			// --- read languages from files ---
 
 			foreach (FileInfo file in Plugin.translationsDir.EnumerateFiles())
 			{
-				string[] words = new string[translationKeys.Length];
+				Plugin.logger.LogInfo($"Reading \"{file.Name}\"");
 
-				CustomLanguage language = new("", GameFont.English, false);
+				string[] words = new string[translationKeys.Length];
+				Dictionary<string, string> translations = [];
 
 				foreach (string line in File.ReadLines(file.FullName))
 				{
@@ -189,7 +193,7 @@ namespace BoplTranslator
 					string key = splitted[0].Trim();
 					string value = splitted[1].Trim().Replace(@"\n", "\n");
 
-					language.translationPairs.Add(key, value);
+					translations[key] = value;
 
 					int index = System.Array.FindIndex(translationKeys, e => e.Equals(key));
 					if (index == -1) continue;
@@ -197,33 +201,35 @@ namespace BoplTranslator
 					words[index] = value;
 				}
 
-				if (!language.translationPairs.TryGetValue("menu_language", out string languageName))
+				if (!translations.TryGetValue("menu_language", out string languageName))
 				{
 					Plugin.logger.LogError("No 'menu_language' entry!");
 					continue;
 				}
 
-				language.Name = languageName;
-
-				CustomLanguage fallbackLanguage = BoplTranslator.GetCustomLanguage(Plugin.fallbackLanguage.Value);
+				CustomLanguage language = new(languageName, GameFont.English, false);
+				language.EditTranslations(translations);
 
 				for (int i = 0; i < words.Length; i++)
 				{
 					string word = words[i];
 					if (word != null) continue;
 
+					string key = translationKeys[i];
+					if (language.translationPairs.ContainsKey(key)) continue;
+
 					// word at i index was left out of translation file -> add default value from fallback language
 
-					string key = translationKeys[i];
-					string defaultText = fallbackLanguage.translationPairs.GetValueSafe(key);
-
+					string defaultText = fallbackLanguage.GetTranslation(key);
 					language.translationPairs.Add(key, defaultText);
 
 					if (!key.StartsWith("undefined"))
 						Plugin.logger.LogWarning($"No translation for \"{translationKeys[i]}\" in \"{file.Name}\"");
 				}
 
-				customLanguages.Add(language);
+				if(!language.IsReferenced) customLanguages.Add(language);
+
+				Plugin.logger.LogInfo($"Successfully read \"{file.Name}\"");
 			}
 		}
 

@@ -59,8 +59,12 @@ namespace BoplTranslator
 				// dont create selector if there is no custom language
 				if (LanguagePatch.customLanguages.Count == 0)
 				{
+				// if last language was a custom then set current to fallback
 				if ((int)Settings.Get().Language > LanguagePatch.OGLanguagesCount)
+				{
 					Settings.Get().Language = fallbackLanguage.Value;
+					BoplTranslator.UpdateTexts();
+				}
 					yield break;
 				}
 
@@ -94,10 +98,7 @@ namespace BoplTranslator
 				}
 
 				if (lastCustomLanguageCode.Value == "")
-				{
 					lastCustomLanguageCode.Value = selector.languageNames[0];
-					Config.Save();
-				}
 
 				selector.langMenu = langMenu;
 				selector.Init();
@@ -165,17 +166,20 @@ namespace BoplTranslator
 		public void Init()
 		{
 			OptionIndex = (int)Settings.Get().Language;
-			if (OptionIndex <= LanguagePatch.OGLanguagesCount) OptionIndex = 0;
+			if (OptionIndex <= LanguagePatch.OGLanguagesCount)
+				OptionIndex = 0; // if last langauge was built-in, set button to first custom language
 			else
 			{
-				OptionIndex -= LanguagePatch.OGLanguagesCount + 1;
+				OptionIndex -= LanguagePatch.OGLanguagesCount + 1; // button_text_index = current - og.length - 1
 				if (OptionIndex >= languageNames.Count)
 				{
+					// last used langauge isnt present
 					Plugin.logger.LogWarning($"Language number {OptionIndex} was selected, but no language with that number exists");
 					TryFindLastLanguage();
 				}
 				else if (languageNames[OptionIndex] != Plugin.lastCustomLanguageCode.Value)
 				{
+					// last language name isnt the last that is saved in config -> languages were added/removed
 					Plugin.logger.LogWarning($"last language wasn't \"{languageNames[OptionIndex]}\", it was \"{Plugin.lastCustomLanguageCode.Value}\"");
 					TryFindLastLanguage();
 				}
