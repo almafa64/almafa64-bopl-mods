@@ -27,7 +27,7 @@ namespace BoplTranslator
 
 		private void Awake()
 		{
-			translationsDir = new DirectoryInfo(Path.Combine(Paths.PluginPath, PluginInfo.PLUGIN_NAME, "translations"));
+			translationsDir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Info.Location), "translations"));
 			translationsDir.Create();
 
 			harmony = new(PluginInfo.PLUGIN_GUID);
@@ -56,84 +56,84 @@ namespace BoplTranslator
 
 		private IEnumerator TimeoutSceneLoad()
 		{
-				// dont create selector if there is no custom language
-				if (LanguagePatch.customLanguages.Count == 0)
-				{
+			// dont create selector if there is no custom language
+			if (LanguagePatch.customLanguages.Count == 0)
+			{
 				// if last language was a custom then set current to fallback
 				if ((int)Settings.Get().Language > LanguagePatch.OGLanguagesCount)
 				{
 					Settings.Get().Language = fallbackLanguage.Value;
 					BoplTranslator.UpdateTexts();
 				}
-					yield break;
-				}
+				yield break;
+			}
 
 			// idk why but without timeout it crashes
-				yield return new WaitForSeconds(0.05f);
+			yield return new WaitForSeconds(0.05f);
 
-				// create button for custom language selector
-				GameObject langMenu = GameObject.Find("LanguageMenu_leaveACTIVE");
-				int lastOGLanguage = langMenu.transform.childCount - 1;
-				GameObject langArrowsParent = Instantiate(GameObject.Find("Resolution"));
-				GameObject lang = Instantiate(GameObject.Find("en"), langMenu.transform);
+			// create button for custom language selector
+			GameObject langMenu = GameObject.Find("LanguageMenu_leaveACTIVE");
+			int lastOGLanguage = langMenu.transform.childCount - 1;
+			GameObject langArrowsParent = Instantiate(GameObject.Find("Resolution"));
+			GameObject lang = Instantiate(GameObject.Find("en"), langMenu.transform);
 
-				// create arrows for button
-				Button[] buttons = langArrowsParent.GetComponentsInChildren<Button>();
-				lang.GetComponentInChildren<SelectionBorder>().ButtonsWithTextColors = buttons;
-				foreach (Button button in buttons)
-				{
-					button.transform.SetParent(lang.transform);
-					button.transform.localScale = new Vector3(1, 1, 1);
-				}
-				buttons[0].transform.localPosition = new Vector3(370, 35, 0);
-				buttons[1].transform.localPosition = new Vector3(-300, 35, 0);
-				Destroy(langArrowsParent);
-				Destroy(lang.GetComponent<OptionsButton>());
-
-				// add readed languages
-				LanguageSelector selector = lang.AddComponent<LanguageSelector>();
-				foreach (CustomLanguage customLang in LanguagePatch.customLanguages)
-				{
-				selector.languageNames.Add(customLang.Name);
-				}
-
-				if (lastCustomLanguageCode.Value == "")
-					lastCustomLanguageCode.Value = selector.languageNames[0];
-
-				selector.langMenu = langMenu;
-				selector.Init();
-
-				// adds button info into the menu, so it can animate it
-				MainMenu menu = langMenu.GetComponent<MainMenu>();
-				menu.ConfiguredMenuItems.Add(lang);
-				Traverse menuTraverse = Traverse.Create(menu);
-				menuTraverse.Field("Indices").GetValue<List<int>>().Add(0);
-				menuTraverse.Field("MenuItemTransforms").GetValue<List<RectTransform>>().Add(lang.GetComponent<RectTransform>());
-				menuTraverse.Field("MenuItems").GetValue<List<IMenuItem>>().Add(lang.GetComponent<OptionsButton>()); // bs but works
-
-				List<Vector2> poses = menuTraverse.Field("originalMenuItemPositions").GetValue<List<Vector2>>();
-				float diff = poses[0].y - poses[2].y;
-				poses.Add(new Vector2(0, poses[lastOGLanguage].y - diff));
-
-				lang.name = "Custom Languages";
-
-				// modify events to work with new button
-				CallOnHover call = lang.GetComponent<CallOnHover>();
-				UnityEvent hover = call.onHover;
-				hover.RemoveAllListeners();
-				hover.AddListener(() =>
-				{
-					menu.Select(14);
-					selector.InputActive = true;
-				});
-				call.onExitHover.AddListener(() =>
-				{
-					selector.InputActive = false;
-				});
-				UnityEvent click = call.onClick;
-				click.RemoveAllListeners();
-				click.AddListener(selector.Click);
+			// create arrows for button
+			Button[] buttons = langArrowsParent.GetComponentsInChildren<Button>();
+			lang.GetComponentInChildren<SelectionBorder>().ButtonsWithTextColors = buttons;
+			foreach (Button button in buttons)
+			{
+				button.transform.SetParent(lang.transform);
+				button.transform.localScale = new Vector3(1, 1, 1);
 			}
+			buttons[0].transform.localPosition = new Vector3(370, 35, 0);
+			buttons[1].transform.localPosition = new Vector3(-300, 35, 0);
+			Destroy(langArrowsParent);
+			Destroy(lang.GetComponent<OptionsButton>());
+
+			// add readed languages
+			LanguageSelector selector = lang.AddComponent<LanguageSelector>();
+			foreach (CustomLanguage customLang in LanguagePatch.customLanguages)
+			{
+				selector.languageNames.Add(customLang.Name);
+			}
+
+			if (lastCustomLanguageCode.Value == "")
+				lastCustomLanguageCode.Value = selector.languageNames[0];
+
+			selector.langMenu = langMenu;
+			selector.Init();
+
+			// adds button info into the menu, so it can animate it
+			MainMenu menu = langMenu.GetComponent<MainMenu>();
+			menu.ConfiguredMenuItems.Add(lang);
+			Traverse menuTraverse = Traverse.Create(menu);
+			menuTraverse.Field("Indices").GetValue<List<int>>().Add(0);
+			menuTraverse.Field("MenuItemTransforms").GetValue<List<RectTransform>>().Add(lang.GetComponent<RectTransform>());
+			menuTraverse.Field("MenuItems").GetValue<List<IMenuItem>>().Add(lang.GetComponent<OptionsButton>()); // bs but works
+
+			List<Vector2> poses = menuTraverse.Field("originalMenuItemPositions").GetValue<List<Vector2>>();
+			float diff = poses[0].y - poses[2].y;
+			poses.Add(new Vector2(0, poses[lastOGLanguage].y - diff));
+
+			lang.name = "Custom Languages";
+
+			// modify events to work with new button
+			CallOnHover call = lang.GetComponent<CallOnHover>();
+			UnityEvent hover = call.onHover;
+			hover.RemoveAllListeners();
+			hover.AddListener(() =>
+			{
+				menu.Select(14);
+				selector.InputActive = true;
+			});
+			call.onExitHover.AddListener(() =>
+			{
+				selector.InputActive = false;
+			});
+			UnityEvent click = call.onClick;
+			click.RemoveAllListeners();
+			click.AddListener(selector.Click);
+		}
 	}
 
 	public class LanguageSelector : MonoBehaviour, IMenuItem
