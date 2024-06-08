@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace BoplTranslator
 {
@@ -11,7 +11,7 @@ namespace BoplTranslator
 	{
 		private static readonly Dictionary<string, string> _translationLookUp = new()
 		{
-			{ "menu_language", "en" },
+			{ "name", "en" },
 			{ "menu_play", "play" },
 			{ "play_start", "start!" },
 			{ "menu_online", "online" },
@@ -107,16 +107,23 @@ namespace BoplTranslator
 			{ "item_beam", "beam" },
 		};
 
-		public static readonly List<CustomLanguage> languages = [];
-		public static int OGLanguagesCount { get; private set; }
+		internal static readonly List<CustomLanguage> ogLanguages = [];
+		internal static readonly List<CustomLanguage> customLanguages = [];
+		internal static int OGLanguagesCount { get; private set; }
+		internal static CustomLanguage fallbackLanguage;
 
-		private static readonly MethodInfo getTextMethod = typeof(LocalizationTable).GetMethod("getText", AccessTools.all);
-
-		public static void Init()
+		internal static readonly FieldInfo textField = typeof(LocalizedText).GetField("enText", AccessTools.all);
+		
+		internal static void Init()
 		{
 			Plugin.harmony.Patch(
 				AccessTools.Method(typeof(LocalizationTable), nameof(LocalizationTable.GetText)),
-				prefix: new(typeof(LanguagePatch), nameof(GetTextPatch))
+				prefix: new(typeof(LanguagePatch), nameof(GetText_Prefix))
+			);
+
+			Plugin.harmony.Patch(
+				AccessTools.Method(typeof(LocalizedText), "Start"),
+				prefix: new(typeof(LanguagePatch), nameof(TextStart_Prefix))
 			);
 
 			Plugin.harmony.Patch(
@@ -126,88 +133,172 @@ namespace BoplTranslator
 
 			OGLanguagesCount = Utils.MaxOfEnum<Language>();
 
-			string[] translationKeys = _translationLookUp.Keys.ToArray();
+			string[] translationKeys = [.. _translationLookUp.Keys];
+			List<string> translationValues = [.. _translationLookUp.Values];
 
-			// read languages
+			// --- load built-in languages ---
+
+			LocalizationTable table = Resources.FindObjectsOfTypeAll<LocalizationTable>()[0];
+
+			void MakeCustomFromBuiltIn(string[] translations, GameFont font)
+			{
+				CustomLanguage language = new(translations[0], font, false);
+
+				for (int i = 0; i < translations.Length; i++)
+				{
+					// add dict entry by searching for original text in _translationLookUp and using the key from it
+					string text = table.en[i];
+					int valueIndex = translationValues.FindIndex(e => e == text);
+					if (valueIndex == -1) continue;
+					language.translationPairs.Add(translationKeys[valueIndex], translations[i]);
+				}
+
+				ogLanguages.Add(language);
+			}
+
+			/// IMPORTANT: order is based on <see cref="Language"/> 
+			MakeCustomFromBuiltIn(table.en, GameFont.English);
+			MakeCustomFromBuiltIn(table.de, GameFont.English);
+			MakeCustomFromBuiltIn(table.es, GameFont.English);
+			MakeCustomFromBuiltIn(table.fr, GameFont.English);
+			MakeCustomFromBuiltIn(table.it, GameFont.English);
+			MakeCustomFromBuiltIn(table.jp, GameFont.Japanese);
+			MakeCustomFromBuiltIn(table.ko, GameFont.Korean);
+			MakeCustomFromBuiltIn(table.pl, GameFont.Polish);
+			MakeCustomFromBuiltIn(table.ptbr, GameFont.Polish);
+			MakeCustomFromBuiltIn(table.ru, GameFont.Russian);
+			MakeCustomFromBuiltIn(table.se, GameFont.English);
+			MakeCustomFromBuiltIn(table.tr, GameFont.Polish);
+			MakeCustomFromBuiltIn(table.zhcn, GameFont.Chinese);
+			MakeCustomFromBuiltIn(table.zhtw, GameFont.Chinese);
+
+			fallbackLanguage = BoplTranslator.GetCustomLanguage(Plugin.fallbackLanguage.Value);
+
+			// --- read languages from files ---
+
 			foreach (FileInfo file in Plugin.translationsDir.EnumerateFiles())
 			{
-				string[] words = new string[translationKeys.Length];
-				CustomLanguage language = new(words);
-				languages.Add(language);
+				Plugin.logger.LogInfo($"Reading \"{file.Name}\"");
+
+				Dictionary<string, string> translations = [];
 
 				foreach (string line in File.ReadLines(file.FullName))
 				{
-					string[] splitted = line.Split(['='], 2);
-					if (splitted.Length == 1) continue;
+					// syntaxt: "guid.of.translation = something very funny #some comment"
+					string lineCopy = line;
+
+					int commentIndex = lineCopy.IndexOf('#');
+					if(commentIndex != -1) lineCopy = lineCopy.Remove(commentIndex);
+
+					string[] splitted = lineCopy.Split(['='], 2, System.StringSplitOptions.RemoveEmptyEntries);
+					if (splitted.Length < 2) continue;
 
 					string key = splitted[0].Trim();
 					string value = splitted[1].Trim().Replace("\\n", "\n");
-					
-					int index = Array.FindIndex(translationKeys, e => e.Equals(key));
-					if (index == -1) continue;
 
-					words[index] = value;
+					translations[key] = value;
 				}
 
-				for (int i = 0; i < words.Length; i++)
+				if (!translations.TryGetValue("name", out string languageName))
 				{
-					string word = words[i];
-					if (word != null) continue;
+					if (translations.ContainsKey("menu_language"))
+						Plugin.logger.LogError("Use 'name' instead of 'menu_language'!");
+					else
+						Plugin.logger.LogError("No 'name' entry!");
 
-					string key = translationKeys[i];
-					words[i] = _translationLookUp.GetValueSafe(key);
+					continue;
+				}
+
+				GameFont font = fallbackLanguage.Font;
+
+				/// get font from file, if found convert it to <see cref="GameFont"/> else use fallback font
+				if (translations.TryGetValue("font", out string fontName) && System.Enum.TryParse(fontName, out font))
+					translations.Remove("font");
+				
+				CustomLanguage language = new(languageName, font, false);
+				language.EditTranslations(translations);
+
+				foreach (string key in translationKeys)
+				{
+					if (language.translationPairs.ContainsKey(key)) continue;
+
+					// translation at i index was left out of translation file -> add default value from fallback language
+
+					string defaultText = fallbackLanguage.GetTranslation(key);
+					language.translationPairs.Add(key, defaultText);
 
 					if (!key.StartsWith("undefined"))
-						Plugin.logger.LogWarning($"No translation for \"{translationKeys[i]}\" in \"{file.Name}\"");
+						Plugin.logger.LogWarning($"No translation for \"{key}\" in \"{file.Name}\"");
 				}
+
+				if(!language.IsReferenced) customLanguages.Add(language);
+
+				Plugin.logger.LogInfo($"Successfully read \"{file.Name}\"");
 			}
 		}
 
-		internal static bool GetTextPatch(LocalizationTable __instance, ref string __result, string enText, Language lang)
+		internal static bool GetText_Prefix(LocalizationTable __instance, ref string __result, string enText, Language lang)
 		{
-			if (!IsCustomLanguage(lang)) return true;
+			if (enText == null) return false;
+			__result = enText;
 
-			// run orignal getText with custom langauges
-			__result = getTextMethod.Invoke(__instance, [enText, GetCustomLanguage(lang).translations]) as string;
-			
+			CustomLanguage customLanguage = BoplTranslator.GetCustomLanguage(lang);
+			if (customLanguage == null) return false;
+
+			// enText should be guid for this
+			if (customLanguage.translationPairs.TryGetValue(enText, out string translatedText))
+			{
+				// found translation for language
+				__result = translatedText;
+				return false;
+			}
+
+			// try getting with built in english translation if text was not transformed into guid
+			foreach(KeyValuePair<string, string> translationPair in _translationLookUp)
+			{
+				if (translationPair.Value != enText) continue;
+
+				__result = customLanguage.translationPairs[translationPair.Key];
+				return false;
+			}
+
 			return false;
 		}
 
-		internal static void GetFont_Prefix(ref Language lang, ref bool useFontWithStroke)
+		internal static void TextStart_Prefix(LocalizedText __instance)
 		{
-			if (!IsCustomLanguage(lang)) return;
+			string ogText = textField.GetValue(__instance) as string;
+			if (ogText == null) return;
+
+			// ToDo check if enText is already guid
+
+			try
+			{
+				// change enText field to guid
+				string newText = _translationLookUp.First(e => e.Value == ogText).Key;
+				textField.SetValue(__instance, newText);
+			}
+			catch (System.InvalidOperationException) { }
+		}
+
+		internal static void GetFont_Prefix(ref Language lang)
+		{
+			if (!lang.IsCustomLanguage()) return;
 
 			CustomLanguage customLanguage = GetCustomLanguage(lang);
 
-			switch (customLanguage.font)
+			switch (customLanguage?.Font ?? fallbackLanguage.Font)
 			{
-				case BopLTranslator.Font.English: lang = Language.EN; break;
-				case BopLTranslator.Font.Japan: lang = Language.JP; break;
-				case BopLTranslator.Font.Korean: lang = Language.KO; break;
-				case BopLTranslator.Font.Russian: lang = Language.RU; break;
-				case BopLTranslator.Font.Chinese: lang = Language.ZHCN; break;
-				case BopLTranslator.Font.Poland: lang = Language.PL; break;
+				case GameFont.English: lang = Language.EN; break;
+				case GameFont.Japanese: lang = Language.JP; break;
+				case GameFont.Korean: lang = Language.KO; break;
+				case GameFont.Russian: lang = Language.RU; break;
+				case GameFont.Chinese: lang = Language.ZHCN; break;
+				case GameFont.Polish: lang = Language.PL; break;
 			}
-
-			useFontWithStroke = customLanguage.stroke;
 		}
 
-		private static bool IsCustomLanguage(Language lang) => (int)lang > OGLanguagesCount;
-
-		private static CustomLanguage GetCustomLanguage(Language lang) => languages[(int)lang - OGLanguagesCount - 1];
-	}
-
-	class CustomLanguage
-	{
-		internal string[] translations;
-		internal BopLTranslator.Font font;
-		internal bool stroke;
-
-		internal CustomLanguage(string[] translations, BopLTranslator.Font font = BopLTranslator.Font.English, bool stroke = false)
-		{
-			this.translations = translations;
-			this.font = font;
-			this.stroke = stroke;
-		}
+		internal static CustomLanguage GetCustomLanguage(Language lang) =>
+			customLanguages.ElementAtOrDefault((int)lang - OGLanguagesCount - 1);
 	}
 }

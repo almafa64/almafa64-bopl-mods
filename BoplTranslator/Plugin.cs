@@ -22,6 +22,7 @@ namespace BoplTranslator
 		internal static DirectoryInfo translationsDir;
 		internal static ConfigFile config;
 		internal static ConfigEntry<string> lastCustomLanguageCode;
+		internal static ConfigEntry<Language> fallbackLanguage;
 		internal static ManualLogSource logger;
 
 		private void Awake()
@@ -33,6 +34,7 @@ namespace BoplTranslator
 			logger = Logger;
 			config = Config;
 			lastCustomLanguageCode = Config.Bind("store", "last_custom_language_code", "", "dont modify pls");
+			fallbackLanguage = Config.Bind("settings", "fallback language", Language.EN, new ConfigDescription("The built-in language to use when translation is not found", new AcceptableLanguageRange()));
 
 			SceneManager.sceneLoaded += OnSceneLoaded;
 
@@ -48,21 +50,25 @@ namespace BoplTranslator
 
 		private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
-			StartCoroutine(TimeoutSceneLoad(scene.name));
+			if (scene.name == "MainMenu")
+				StartCoroutine(TimeoutSceneLoad());
 		}
 
-		private IEnumerator TimeoutSceneLoad(string name)
+		private IEnumerator TimeoutSceneLoad()
 		{
-			if (name == "MainMenu")
-			{
 				// dont create selector if there is no custom language
-				if (LanguagePatch.languages.Count == 0)
+				if (LanguagePatch.customLanguages.Count == 0)
 				{
-					if ((int)Settings.Get().Language > Utils.MaxOfEnum<Language>()) Settings.Get().Language = 0;
+				// if last language was a custom then set current to fallback
+				if ((int)Settings.Get().Language > LanguagePatch.OGLanguagesCount)
+				{
+					Settings.Get().Language = fallbackLanguage.Value;
+					BoplTranslator.UpdateTexts();
+				}
 					yield break;
 				}
 
-				// idk why but if there is no timeout it will crash
+			// idk why but without timeout it crashes
 				yield return new WaitForSeconds(0.05f);
 
 				// create button for custom language selector
@@ -86,16 +92,13 @@ namespace BoplTranslator
 
 				// add readed languages
 				LanguageSelector selector = lang.AddComponent<LanguageSelector>();
-				foreach (CustomLanguage customLang in LanguagePatch.languages)
+				foreach (CustomLanguage customLang in LanguagePatch.customLanguages)
 				{
-					selector.languageNames.Add(customLang.translations[0]);
+				selector.languageNames.Add(customLang.Name);
 				}
 
 				if (lastCustomLanguageCode.Value == "")
-				{
 					lastCustomLanguageCode.Value = selector.languageNames[0];
-					Config.Save();
-				}
 
 				selector.langMenu = langMenu;
 				selector.Init();
@@ -131,8 +134,6 @@ namespace BoplTranslator
 				click.RemoveAllListeners();
 				click.AddListener(selector.Click);
 			}
-			else yield break;
-		}
 	}
 
 	public class LanguageSelector : MonoBehaviour, IMenuItem
@@ -165,17 +166,20 @@ namespace BoplTranslator
 		public void Init()
 		{
 			OptionIndex = (int)Settings.Get().Language;
-			if (OptionIndex <= LanguagePatch.OGLanguagesCount) OptionIndex = 0;
+			if (OptionIndex <= LanguagePatch.OGLanguagesCount)
+				OptionIndex = 0; // if last langauge was built-in, set button to first custom language
 			else
 			{
-				OptionIndex -= LanguagePatch.OGLanguagesCount + 1;
+				OptionIndex -= LanguagePatch.OGLanguagesCount + 1; // button_text_index = current - og.length - 1
 				if (OptionIndex >= languageNames.Count)
 				{
+					// last used langauge isnt present
 					Plugin.logger.LogWarning($"Language number {OptionIndex} was selected, but no language with that number exists");
 					TryFindLastLanguage();
 				}
 				else if (languageNames[OptionIndex] != Plugin.lastCustomLanguageCode.Value)
 				{
+					// last language name isnt the last that is saved in config -> languages were added/removed
 					Plugin.logger.LogWarning($"last language wasn't \"{languageNames[OptionIndex]}\", it was \"{Plugin.lastCustomLanguageCode.Value}\"");
 					TryFindLastLanguage();
 				}
@@ -226,6 +230,14 @@ namespace BoplTranslator
 			langMenu.GetComponent<MainMenu>().DisableAll();
 			AudioManager.Get().Play("return3");
 			Plugin.lastCustomLanguageCode.Value = languageNames[OptionIndex];
+		}
+	}
+
+	class AcceptableLanguageRange() : AcceptableValueRange<Language>((Language)Utils.MinOfEnum<Language>(), (Language)Utils.MaxOfEnum<Language>())
+	{
+		public override string ToDescriptionString()
+		{
+			return $"# Acceptable langauges: {string.Join(", ", Enum.GetNames(typeof(Language)))}";
 		}
 	}
 }

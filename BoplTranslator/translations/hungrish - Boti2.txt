@@ -1,4 +1,4 @@
-menu_language = HU
+name = HU
 menu_play = játék
 play_start = indítás
 menu_online = online
