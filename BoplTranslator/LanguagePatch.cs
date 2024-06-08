@@ -11,7 +11,7 @@ namespace BoplTranslator
 	{
 		private static readonly Dictionary<string, string> _translationLookUp = new()
 		{
-			{ "menu_language", "en" },
+			{ "name", "en" },
 			{ "menu_play", "play" },
 			{ "play_start", "start!" },
 			{ "menu_online", "online" },
@@ -162,13 +162,13 @@ namespace BoplTranslator
 			MakeCustomFromBuiltIn(table.es, GameFont.English);
 			MakeCustomFromBuiltIn(table.fr, GameFont.English);
 			MakeCustomFromBuiltIn(table.it, GameFont.English);
-			MakeCustomFromBuiltIn(table.jp, GameFont.Japan);
+			MakeCustomFromBuiltIn(table.jp, GameFont.Japanese);
 			MakeCustomFromBuiltIn(table.ko, GameFont.Korean);
-			MakeCustomFromBuiltIn(table.pl, GameFont.Poland);
-			MakeCustomFromBuiltIn(table.ptbr, GameFont.Poland);
+			MakeCustomFromBuiltIn(table.pl, GameFont.Polish);
+			MakeCustomFromBuiltIn(table.ptbr, GameFont.Polish);
 			MakeCustomFromBuiltIn(table.ru, GameFont.Russian);
 			MakeCustomFromBuiltIn(table.se, GameFont.English);
-			MakeCustomFromBuiltIn(table.tr, GameFont.Poland);
+			MakeCustomFromBuiltIn(table.tr, GameFont.Polish);
 			MakeCustomFromBuiltIn(table.zhcn, GameFont.Chinese);
 			MakeCustomFromBuiltIn(table.zhtw, GameFont.Chinese);
 
@@ -184,24 +184,38 @@ namespace BoplTranslator
 
 				foreach (string line in File.ReadLines(file.FullName))
 				{
-					// syntaxt: "guid.of.translation = something very funny"
+					// syntaxt: "guid.of.translation = something very funny #some comment"
+					string lineCopy = line;
 
-					string[] splitted = line.Split(['='], 2, System.StringSplitOptions.RemoveEmptyEntries);
+					int commentIndex = lineCopy.IndexOf('#');
+					if(commentIndex != -1) lineCopy = lineCopy.Remove(commentIndex);
+
+					string[] splitted = lineCopy.Split(['='], 2, System.StringSplitOptions.RemoveEmptyEntries);
 					if (splitted.Length < 2) continue;
 
 					string key = splitted[0].Trim();
-					string value = splitted[1].Trim().Replace(@"\n", "\n");
+					string value = splitted[1].Trim().Replace("\\n", "\n");
 
 					translations[key] = value;
 				}
 
-				if (!translations.TryGetValue("menu_language", out string languageName))
+				if (!translations.TryGetValue("name", out string languageName))
 				{
-					Plugin.logger.LogError("No 'menu_language' entry!");
+					if (translations.ContainsKey("menu_language"))
+						Plugin.logger.LogError("Use 'name' instead of 'menu_language'!");
+					else
+						Plugin.logger.LogError("No 'name' entry!");
+
 					continue;
 				}
 
-				CustomLanguage language = new(languageName, GameFont.English, false);
+				GameFont font = fallbackLanguage.Font;
+
+				/// get font from file, if found convert it to <see cref="GameFont"/> else use fallback font
+				if (translations.TryGetValue("font", out string fontName) && System.Enum.TryParse(fontName, out font))
+					translations.Remove("font");
+				
+				CustomLanguage language = new(languageName, font, false);
 				language.EditTranslations(translations);
 
 				foreach (string key in translationKeys)
@@ -273,14 +287,14 @@ namespace BoplTranslator
 
 			CustomLanguage customLanguage = GetCustomLanguage(lang);
 
-			switch (customLanguage.Font)
+			switch (customLanguage?.Font ?? fallbackLanguage.Font)
 			{
 				case GameFont.English: lang = Language.EN; break;
-				case GameFont.Japan: lang = Language.JP; break;
+				case GameFont.Japanese: lang = Language.JP; break;
 				case GameFont.Korean: lang = Language.KO; break;
 				case GameFont.Russian: lang = Language.RU; break;
 				case GameFont.Chinese: lang = Language.ZHCN; break;
-				case GameFont.Poland: lang = Language.PL; break;
+				case GameFont.Polish: lang = Language.PL; break;
 			}
 		}
 

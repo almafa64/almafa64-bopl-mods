@@ -10,7 +10,9 @@ Use `fallback language` to change which language to use when no translation is f
 
 ## English example translation
 ```
-menu_language = EN
+name = EN
+font = English #This can be English, Japanese, Korean, Russian, Chinese or Polish
+
 menu_play = play
 play_start = start!
 menu_online = online

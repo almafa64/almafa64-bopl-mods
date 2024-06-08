@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using TMPro;
 using UnityEngine;
 
@@ -9,11 +10,11 @@ namespace BoplTranslator
 	public enum GameFont
 	{
 		English,
-		Japan,
+		Japanese,
 		Korean,
 		Russian,
 		Chinese,
-		Poland
+		Polish
 	}
 
 	public class CustomLanguage
@@ -89,7 +90,7 @@ namespace BoplTranslator
 			CustomLanguage fallback = LanguagePatch.fallbackLanguage;
 			translationPairs = new Dictionary<string, string>(fallback.translationPairs)
 			{
-				["menu_language"] = name
+				["name"] = name
 			};
 
 			LanguagePatch.customLanguages.Add(this);
@@ -105,7 +106,18 @@ namespace BoplTranslator
 		{
 			foreach (var text in Resources.FindObjectsOfTypeAll<LocalizedText>())
 			{
+				try
+				{
 				text.UpdateText();
+			}
+				catch (Exception e)
+				{
+					// ToDo transpiler to insert "else if(textToLocalize2 != null)" into UpdateText()
+					if (textToLocalize2Field.GetValue(text) == null) continue;
+
+					Plugin.logger.LogFatal($"Error at updateText: {e}");
+					Plugin.logger.LogFatal("name: " + text.name + ", enText: " + (LanguagePatch.textField.GetValue(text) as string ?? "null"));
+		}
 			}
 		}
 
@@ -167,5 +179,7 @@ namespace BoplTranslator
 
 			return localizedText;
 		}
+
+		private static readonly FieldInfo textToLocalize2Field = typeof(LocalizedText).GetField("textToLocalize2", AccessTools.all);
 	}
 }
