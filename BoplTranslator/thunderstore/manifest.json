@@ -1,6 +1,6 @@
 {
     "name": "BoplTranslator",
-    "version_number": "2.0.0",
+    "version_number": "2.0.1",
     "website_url": "https://github.com/almafa64/almafa64-bopl-mods/tree/master/BoplTranslator",
     "description": "This mod adds custom translation engine into the game",
     "dependencies": [
