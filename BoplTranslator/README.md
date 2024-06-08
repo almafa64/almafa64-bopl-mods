@@ -147,8 +147,8 @@ CustomLanguage myLanguage = new CustomLanguage("HU");
 
 Dictionary<string, string> hunTranslations = new Dictionary<string, string>()
 {
-	{ "menu_exit", "Kilépés" },
-	{ "screen_fullscreen", "Teljes képernyõ" }
+	{ "menu_exit", "KilÃ©pÃ©s" },
+	{ "screen_fullscreen", "Teljes kÃ©pernyÅ‘" }
 };
 
 myLanguage.EditTranslations(hunTranslations);

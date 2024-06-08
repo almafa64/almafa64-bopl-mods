@@ -108,8 +108,8 @@ namespace BoplTranslator
 			{
 				try
 				{
-				text.UpdateText();
-			}
+					text.UpdateText();
+				}
 				catch (Exception e)
 				{
 					// ToDo transpiler to insert "else if(textToLocalize2 != null)" into UpdateText()
@@ -117,7 +117,7 @@ namespace BoplTranslator
 
 					Plugin.logger.LogFatal($"Error at updateText: {e}");
 					Plugin.logger.LogFatal("name: " + text.name + ", enText: " + (LanguagePatch.textField.GetValue(text) as string ?? "null"));
-		}
+				}
 			}
 		}
 
