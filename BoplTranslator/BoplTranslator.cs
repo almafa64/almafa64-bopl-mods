@@ -19,12 +19,12 @@ namespace BoplTranslator
 	public class CustomLanguage
 	{
 		public string Name { get; internal set; }
-		public GameFont Font { get; private set; }
+		public GameFont Font { get; set; }
 		public bool IsReferenced { get; private set; } = false;
 
 		/// <summary>
 		/// Creates a new <see cref="CustomLanguage"/> with fallback language (default english) translations
-		/// If language is already present than it'll reference it while discarding parameters
+		/// If language is already present than it'll reference it while discarding parameters (check <see cref="IsReferenced"/> to see if this instance is referenced)
 		/// </summary>
 		/// <param name="name">name of langauge. Will be converted to lowercase</param>
 		/// <param name="font"></param>
@@ -149,7 +149,7 @@ namespace BoplTranslator
 		/// <param name="translationGUID">the guid of the translation</param>
 		/// <param name="stroke">should text have an outline</param>
 		/// <exception cref="ArgumentNullException"></exception>
-		public static void AttachLocalizedText(GameObject textObject, string translationGUID, bool stroke = false)
+		public static LocalizedText AttachLocalizedText(GameObject textObject, string translationGUID, bool stroke = false)
 		{
 			if (textObject == null) throw new ArgumentNullException(nameof(textObject));
 			
@@ -163,7 +163,9 @@ namespace BoplTranslator
 			traverse.Field("textToLocalize").SetValue(textObject.GetComponent<TextMeshProUGUI>());
 			traverse.Field("textToLocalize2").SetValue(textObject.GetComponent<TextMesh>());
 
-			if (old) old.UpdateText();
+			old?.UpdateText();
+
+			return localizedText;
 		}
 	}
 }

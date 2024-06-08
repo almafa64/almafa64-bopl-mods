@@ -143,4 +143,16 @@ myLanguage.EditTranslations(hunTranslations);
 GameObject gun = GameObject.Find("Balloon Gun nameplate");
 BoplTranslator.AttachLocalizedText(gun, "com.almafa64.custom_gun_ability", true);
 ```
-**Note**: Before any call to `BoplTranslator.AttachLocalizedText` make sure you make all translations needed with `language.AddText` (it won't break, but `AddText` doesn't update `LocalizedText`s).
+**Note**: Before any call to `BoplTranslator.AttachLocalizedText` make sure you make all translations needed with `language.EditTranslation` (it won't break, but `EditTranslation` doesn't update `LocalizedText`s).
+**Note2**: GameObject should already have `TextMeshProUGUI` or `TextMesh` component.
+
+### Update LocalizedText
+```cs
+GameObject gun = GameObject.Find("Balloon Gun nameplate");
+gun.GetComponent<LocalizedText>().UpdateText();
+```
+
+### Update all LocalizedText
+```cs
+BoplTranslator.UpdateTexts();
+```
