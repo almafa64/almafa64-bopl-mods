@@ -25,6 +25,7 @@ namespace BoplModSyncer
 		private static readonly string memberHasSyncerField = GameUtils.GenerateField("syncer");
 
 		private static bool firstJoin = true;
+		private static bool hostSetupDone = false;
 
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
@@ -57,6 +58,7 @@ namespace BoplModSyncer
 		{
 			SteamManager.instance.LeaveLobby();
 			Plugin.logger.LogWarning($"Left lobby because: '{message}'");
+			// ToDo: send this to everyone else
 		}
 
 		private static void HostDoesntHaveSyncer(Lobby lobby)
@@ -401,10 +403,25 @@ namespace BoplModSyncer
 
 			if (configListBuilder.Length > 0) configListBuilder.RemoveLast(); // remove last '\\'
 			lobby.SetData(hostConfigListField, configListBuilder.ToString());
+
+			hostSetupDone = true;
 		}
 
+		// ToDo: maybe use Entwined instead?
+		// ToDo: what happens if you're not host and some joins
 		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
 		{
+			// if host hasnt finished "booting" dont let people join
+			if(!hostSetupDone)
+			{
+				int playerIndex = SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id);
+				if (playerIndex == -1) return;
+
+				SteamManager.instance.KickPlayer(playerIndex);
+				Plugin.logger.LogWarning($"Kicked \"{friend.Name}\" because host(you) still havent finished booting!");
+				return;
+			}
+
 			// kick those who dont have syncer
 			IEnumerator waitForField()
 			{
