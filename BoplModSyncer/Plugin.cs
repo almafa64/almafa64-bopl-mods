@@ -21,7 +21,8 @@ namespace BoplModSyncer
 	public class Plugin : BaseUnityPlugin
 	{
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
-		public const string THUNDERSTORE_BOPL_MODS = "https://thunderstore.io/c/bopl-battle/api/v1/package";
+		internal const string THUNDERSTORE_BOPL_MODS = "https://thunderstore.io/c/bopl-battle/api/v1/package";
+		internal const string GITHUB_CLIENT_ONLY_GUIDS = "https://raw.githubusercontent.com/almafa64/almafa64-bopl-mods/dev/BoplModSyncer/client_only_guids.txt";
 
 		private static readonly Dictionary<string, LocalModData> _mods = [];
 		public static readonly ReadOnlyDictionary<string, LocalModData> mods = new(_mods);
@@ -35,7 +36,7 @@ namespace BoplModSyncer
 		internal static ConfigEntry<ulong> lastLobbyId;
 
 		internal static string _checksum;
-		internal static readonly HashSet<string> _clientOnlyGuids = [
+		/*internal static readonly HashSet<string> _clientOnlyGuids = [
 			"com.almafa64.BoplTranslator",
 			"com.almafa64.BoplModSyncer",
 			"com.almafa64.BoplUtils",
@@ -49,7 +50,8 @@ namespace BoplModSyncer
 			"me.antimality.RainbowPlayer",
 			"me.antimality.TimeStopTimer",
 			"me.antimality.SuddenDeathTimer",
-		];
+		];*/
+		internal static readonly HashSet<string> _clientOnlyGuids = [];
 
 		internal static GameObject genericPanel;
 		internal static GameObject missingModsPanel;
@@ -65,6 +67,12 @@ namespace BoplModSyncer
 			logger = Logger;
 			config = Config;
 			plugin = this;
+
+			WebClient wc = new();
+            foreach (string guid in wc.DownloadString(GITHUB_CLIENT_ONLY_GUIDS).Split('\n'))
+            {
+                _clientOnlyGuids.Add(guid.Trim());
+            };
 
 			lastLobbyId = config.Bind("BoplModSyncer", "last lobby id", 0ul);
 
