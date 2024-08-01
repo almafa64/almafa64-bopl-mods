@@ -8,6 +8,11 @@ com.WackyModer.ModNames
 com.Melon.AntiMatchmaking
 com.Melon.RageQuitButton
 com.Melon.CustomReplayAmount
+com.Melon.GustLogging
 me.antimality.RainbowPlayer
 me.antimality.TimeStopTimer
 me.antimality.SuddenDeathTimer
+com.thepro.CustomLocalColors
+com.rbdev.CustomColors
+com.Zahirgamer444.NoQuitButton
+GameStats
