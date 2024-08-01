@@ -69,10 +69,10 @@ namespace BoplModSyncer
 			plugin = this;
 
 			WebClient wc = new();
-            foreach (string guid in wc.DownloadString(GITHUB_CLIENT_ONLY_GUIDS).Split('\n'))
-            {
-                _clientOnlyGuids.Add(guid.Trim());
-            };
+			foreach (string guid in wc.DownloadString(GITHUB_CLIENT_ONLY_GUIDS).Split('\n'))
+			{
+				_clientOnlyGuids.Add(guid.Trim());
+			};
 
 			lastLobbyId = config.Bind("BoplModSyncer", "last lobby id", 0ul);
 
@@ -116,10 +116,10 @@ namespace BoplModSyncer
 				Dictionary<string, string> modLinks = [];
 				foreach(var versionObj in (List<object>)mod["versions"])
 				{
-					Dictionary<string, object> version = versionObj as Dictionary<string, object>;
-					modLinks.Add((string)version["version_number"], version["download_url"] as string);
+					Dictionary<string, object> version = (Dictionary<string, object>)versionObj;
+					modLinks.Add((string)version["version_number"], (string)version["download_url"]);
 				}
-				downloadLinks.Add((string)mod["name"], modLinks);
+				downloadLinks.Add((string)mod["full_name"], modLinks);
 			}
 
 			// Get all downloaded mods (and add link if it's released)
@@ -133,8 +133,13 @@ namespace BoplModSyncer
 				hashes.Add(hash);
 
 				Manifest manifest = GameUtils.GetManifest(plugin);
+				// manifest doesnt store fullname because there is no account associated with it,
+				// so a little improvising needed with the help of the directory
+				// e.g.: examplemod-almafa64-1.0.0 -> examplemod-almafa64
+				string dir = Path.GetFileName(manifest?.Directory);
+				string fullName = dir?.Substring(0, dir.LastIndexOf('-'));
 
-				string link = manifest == null ? "" : downloadLinks.GetValueSafe(manifest.Name).GetValueSafe(manifest.Version);
+				string link = fullName == null ? "" : downloadLinks.GetValueSafe(fullName).GetValueSafe(manifest.Version);
 				LocalModData mod = new(link)
 				{
 					Manifest = manifest,
