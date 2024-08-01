@@ -26,9 +26,12 @@ namespace BoplModSyncer
 
 		private static bool firstJoin = true;
 		private static bool hostSetupDone = false;
+		private static bool isHost = false;
 
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
+			hostSetupDone = isHost = false;
+
 			if (SteamManager.LocalPlayerIsLobbyOwner)
 			{
 				if (firstJoin && Plugin.lastLobbyId.Value != 0)   // rejoin lobby you left
@@ -360,8 +363,11 @@ namespace BoplModSyncer
 			});
 		}
 
+		// ToDo: cache these
 		private static void OnHostJoin(Lobby lobby)
 		{
+			isHost = true;
+
 			lobby.SetData(checksumField, Plugin.CHECKSUM);
 
 			StringBuilder modListBuilder = new();
@@ -407,10 +413,11 @@ namespace BoplModSyncer
 			hostSetupDone = true;
 		}
 
-		// ToDo: maybe use Entwined instead?
-		// ToDo: what happens if you're not host and some joins
 		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
 		{
+			// lazy to check if this method is run for every connected user or just host
+			if(!isHost) return;
+
 			// if host hasnt finished "booting" dont let people join
 			if(!hostSetupDone)
 			{
@@ -422,6 +429,7 @@ namespace BoplModSyncer
 				return;
 			}
 
+			// ToDo: maybe use Entwined instead?
 			// kick those who dont have syncer
 			IEnumerator waitForField()
 			{
