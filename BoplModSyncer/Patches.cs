@@ -200,7 +200,11 @@ namespace BoplModSyncer
 					foreach (HostConfigEntry entry in configEntries)
 					{
 						// Activator.CreateInstance doesnt like strings
-						object defVal = entry.Type == typeof(string) ? "" : System.Activator.CreateInstance(entry.Type);
+						object defVal;
+						if (entry.Type == typeof(string)) defVal = "";
+						else if (entry.Type.IsValueType) defVal = System.Activator.CreateInstance(entry.Type);
+						else defVal = null;
+
 						object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, defVal, null]);
 						(configEntry as ConfigEntryBase).SetSerializedValue(entry.Value);
 					}
