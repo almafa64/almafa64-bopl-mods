@@ -370,8 +370,16 @@ namespace BoplModSyncer
 
 			lobby.SetData(checksumField, Plugin.CHECKSUM);
 
+			/*
+			{
+				guid1: [
+					[entry_name1, type1, value1]
+				]
+			}
+			*/
+			Dictionary<string, List<string[]>> configs = [];
 			StringBuilder modListBuilder = new();
-			StringBuilder configListBuilder = new();
+
 			foreach (KeyValuePair<string, LocalModData> modDir in Plugin.mods)
 			{
 				LocalModData mod = modDir.Value;
@@ -386,9 +394,8 @@ namespace BoplModSyncer
 
 				if (config.Count == 0) continue;
 
-				// guid:entry_name1\ttype1\tvalue1\nentry_name2\ttype2\tvalue2\\
-				// \t, \n and \\ are blocked by ConfigDefinition so they can be used as a separator
-				configListBuilder.Append(modDir.Key).Append(':');
+				List<string[]> entries = [];
+
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{
 					ConfigEntryBase entry = entryDic.Value;
@@ -397,27 +404,26 @@ namespace BoplModSyncer
 					string type = entry.SettingType.FullName;
 					if (System.Type.GetType(type) == null) type = entry.SettingType.AssemblyQualifiedName;
 
-					configListBuilder.Append(entryDic.Key.MyToString()).Append('\t')
-						.Append(type).Append('\t')
-						.Append(entry.GetSerializedValue()).Append('\n');
+					entries.Add([entryDic.Key.MyToString(), type, entry.GetSerializedValue()]);
 				}
-				configListBuilder.RemoveLast().Append('\\');
+
+				configs.Add(modDir.Key, entries);
 			}
 
 			if (modListBuilder.Length > 0) modListBuilder.RemoveLast(); // remove last '|'
 			lobby.SetData(hostModListField, modListBuilder.ToString());
 
-			if (configListBuilder.Length > 0) configListBuilder.RemoveLast(); // remove last '\\'
-			lobby.SetData(hostConfigListField, configListBuilder.ToString());
+			lobby.SetData(hostConfigListField, configs.ToJson());
 
 			hostSetupDone = true;
 		}
 
 		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
 		{
-			// lazy to check if this method is run for every connected user or just host
+			// lazy to check if this method is run for every connected user or just host, so just to be sure
 			if(!isHost) return;
 
+			// ToDo: some kind of feedback needed so people dont think this is a bug
 			// if host hasnt finished "booting" dont let people join
 			if(!hostSetupDone)
 			{
