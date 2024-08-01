@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using TinyJson;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -198,7 +199,9 @@ namespace BoplModSyncer
 
 					foreach (HostConfigEntry entry in configEntries)
 					{
-						object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, 0, null]);
+						// Activator.CreateInstance doesnt like strings
+						object defVal = entry.Type == typeof(string) ? "" : System.Activator.CreateInstance(entry.Type);
+						object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, defVal, null]);
 						(configEntry as ConfigEntryBase).SetSerializedValue(entry.Value);
 					}
 
@@ -212,6 +215,7 @@ namespace BoplModSyncer
 				toInstallMods[missingModsCount] = modData;
 				missingModsCount++;
 			}
+
 			System.Array.Resize(ref toInstallMods, missingModsCount);
 
 			// get locally installed mods that the host doesnt have
