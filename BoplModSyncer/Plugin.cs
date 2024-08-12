@@ -36,21 +36,6 @@ namespace BoplModSyncer
 		internal static ConfigEntry<ulong> lastLobbyId;
 
 		internal static string _checksum;
-		/*internal static readonly HashSet<string> _clientOnlyGuids = [
-			"com.almafa64.BoplTranslator",
-			"com.almafa64.BoplModSyncer",
-			"com.almafa64.BoplUtils",
-			"com.almafa64.WhoseThisTeleport",
-			"com.unluckycrafter.fiberlib",
-			"com.codemob.songnames",
-			"com.WackyModer.ModNames",
-			"com.Melon.AntiMatchmaking",
-			"com.Melon.RageQuitButton",
-			"com.Melon.CustomReplayAmount",
-			"me.antimality.RainbowPlayer",
-			"me.antimality.TimeStopTimer",
-			"me.antimality.SuddenDeathTimer",
-		];*/
 		internal static readonly HashSet<string> _clientOnlyGuids = [];
 
 		internal static GameObject genericPanel;
