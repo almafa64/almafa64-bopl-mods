@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using TinyJson;
 using UnityEngine;
 
 namespace BoplModSyncer.Utils
@@ -179,25 +180,26 @@ namespace BoplModSyncer.Utils
 			return null;
 		}
 
-		/// <param name="hostConfigListText">format: <c>guid1:entry_name1\ttype1\tvalue1\nentry_name2\ttype2\tvalue2\\</c></param>
+		/// <param name="hostConfigListText">format: <c>json -> { guid1: [[entry_name1, type1, value1], [entry_name2, type2, value2] }</c></param>
 		public static Dictionary<string, HostConfigEntry[]> GetHostConfigs(string hostConfigListText)
 		{
 			Dictionary<string, HostConfigEntry[]> hostConfigs = [];
 
-			foreach (string mod in hostConfigListText.Split(['\\'], StringSplitOptions.RemoveEmptyEntries))
-			{
-				string[] guidSplit = mod.Split([':'], 2);
-				string[] configSplit = guidSplit[1].Split('\n');
-				HostConfigEntry[] hostEntries = new HostConfigEntry[configSplit.Length];
+			var configs = hostConfigListText.FromJson<Dictionary<string, List<string[]>>>();
 
-				for (int i = 0; i < configSplit.Length; i++)
+			foreach (KeyValuePair<string, List<string[]>> config in configs)
+			{
+				List<string[]> entries = config.Value;
+				HostConfigEntry[] hostEntries = new HostConfigEntry[entries.Count];
+				
+				for (int i = 0; i < entries.Count; i++)
 				{
-					string[] entrySplit = configSplit[i].Split(['\t'], 3);
-					string[] nameSplit = entrySplit[0].Split(['='], 2);
-					hostEntries[i] = new(new(nameSplit[0], nameSplit[1]), Type.GetType(entrySplit[1]), entrySplit[2]);
+					string[] entry = entries[i];
+					string[] defSplit = entry[0].Split(['='], 2);
+					hostEntries[i] = new(new(defSplit[0], defSplit[1]), Type.GetType(entry[1]), entry[2]);
 				}
 
-				hostConfigs.Add(guidSplit[0], hostEntries);
+				hostConfigs.Add(config.Key, hostEntries);
 			}
 
 			return hostConfigs;

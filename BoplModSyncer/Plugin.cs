@@ -21,7 +21,8 @@ namespace BoplModSyncer
 	public class Plugin : BaseUnityPlugin
 	{
 		public static string CHECKSUM { get => _checksum ?? throw new("CHECKSUM hasn't been calculated"); }
-		public const string THUNDERSTORE_BOPL_MODS = "https://thunderstore.io/c/bopl-battle/api/v1/package";
+		internal const string THUNDERSTORE_BOPL_MODS = "https://thunderstore.io/c/bopl-battle/api/v1/package";
+		internal const string GITHUB_CLIENT_ONLY_GUIDS = "https://raw.githubusercontent.com/almafa64/almafa64-bopl-mods/dev/BoplModSyncer/client_only_guids.txt";
 
 		private static readonly Dictionary<string, LocalModData> _mods = [];
 		public static readonly ReadOnlyDictionary<string, LocalModData> mods = new(_mods);
@@ -35,21 +36,7 @@ namespace BoplModSyncer
 		internal static ConfigEntry<ulong> lastLobbyId;
 
 		internal static string _checksum;
-		internal static readonly HashSet<string> _clientOnlyGuids = [
-			"com.almafa64.BoplTranslator",
-			"com.almafa64.BoplModSyncer",
-			"com.almafa64.BoplUtils",
-			"com.almafa64.WhoseThisTeleport",
-			"com.unluckycrafter.fiberlib",
-			"com.codemob.songnames",
-			"com.WackyModer.ModNames",
-			"com.Melon.AntiMatchmaking",
-			"com.Melon.RageQuitButton",
-			"com.Melon.CustomReplayAmount",
-			"me.antimality.RainbowPlayer",
-			"me.antimality.TimeStopTimer",
-			"me.antimality.SuddenDeathTimer",
-		];
+		internal static readonly HashSet<string> _clientOnlyGuids = [];
 
 		internal static GameObject genericPanel;
 		internal static GameObject missingModsPanel;
@@ -65,6 +52,12 @@ namespace BoplModSyncer
 			logger = Logger;
 			config = Config;
 			plugin = this;
+
+			WebClient wc = new();
+			foreach (string guid in wc.DownloadString(GITHUB_CLIENT_ONLY_GUIDS).Split('\n'))
+			{
+				_clientOnlyGuids.Add(guid.Trim());
+			};
 
 			lastLobbyId = config.Bind("BoplModSyncer", "last lobby id", 0ul);
 
@@ -108,10 +101,10 @@ namespace BoplModSyncer
 				Dictionary<string, string> modLinks = [];
 				foreach(var versionObj in (List<object>)mod["versions"])
 				{
-					Dictionary<string, object> version = versionObj as Dictionary<string, object>;
-					modLinks.Add((string)version["version_number"], version["download_url"] as string);
+					Dictionary<string, object> version = (Dictionary<string, object>)versionObj;
+					modLinks.Add((string)version["version_number"], (string)version["download_url"]);
 				}
-				downloadLinks.Add((string)mod["name"], modLinks);
+				downloadLinks.Add((string)mod["full_name"], modLinks);
 			}
 
 			// Get all downloaded mods (and add link if it's released)
@@ -125,8 +118,13 @@ namespace BoplModSyncer
 				hashes.Add(hash);
 
 				Manifest manifest = GameUtils.GetManifest(plugin);
+				// manifest doesnt store fullname because there is no account associated with it,
+				// so a little improvising needed with the help of the directory
+				// e.g.: examplemod-almafa64-1.0.0 -> examplemod-almafa64
+				string dir = Path.GetFileName(manifest?.Directory);
+				string fullName = dir?.Substring(0, dir.LastIndexOf('-'));
 
-				string link = manifest == null ? "" : downloadLinks.GetValueSafe(manifest.Name).GetValueSafe(manifest.Version);
+				string link = fullName == null ? "" : downloadLinks.GetValueSafe(fullName).GetValueSafe(manifest.Version);
 				LocalModData mod = new(link)
 				{
 					Manifest = manifest,

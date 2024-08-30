@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using TinyJson;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,9 +26,13 @@ namespace BoplModSyncer
 		private static readonly string memberHasSyncerField = GameUtils.GenerateField("syncer");
 
 		private static bool firstJoin = true;
+		private static bool hostSetupDone = false;
+		private static bool isHost = false;
 
 		public static void OnEnterLobby_Prefix(Lobby lobby)
 		{
+			hostSetupDone = isHost = false;
+
 			if (SteamManager.LocalPlayerIsLobbyOwner)
 			{
 				if (firstJoin && Plugin.lastLobbyId.Value != 0)   // rejoin lobby you left
@@ -57,6 +62,7 @@ namespace BoplModSyncer
 		{
 			SteamManager.instance.LeaveLobby();
 			Plugin.logger.LogWarning($"Left lobby because: '{message}'");
+			// ToDo: send this to everyone else
 		}
 
 		private static void HostDoesntHaveSyncer(Lobby lobby)
@@ -193,7 +199,13 @@ namespace BoplModSyncer
 
 					foreach (HostConfigEntry entry in configEntries)
 					{
-						object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, 0, null]);
+						// Activator.CreateInstance doesnt like strings
+						object defVal;
+						if (entry.Type == typeof(string)) defVal = "";
+						else if (entry.Type.IsValueType) defVal = System.Activator.CreateInstance(entry.Type);
+						else defVal = null;
+
+						object configEntry = bindMethod.MakeGenericMethod(entry.Type).Invoke(config, [entry.Definition, defVal, null]);
 						(configEntry as ConfigEntryBase).SetSerializedValue(entry.Value);
 					}
 
@@ -207,6 +219,7 @@ namespace BoplModSyncer
 				toInstallMods[missingModsCount] = modData;
 				missingModsCount++;
 			}
+
 			System.Array.Resize(ref toInstallMods, missingModsCount);
 
 			// get locally installed mods that the host doesnt have
@@ -358,12 +371,23 @@ namespace BoplModSyncer
 			});
 		}
 
+		// ToDo: cache these
 		private static void OnHostJoin(Lobby lobby)
 		{
+			isHost = true;
+
 			lobby.SetData(checksumField, Plugin.CHECKSUM);
 
+			/*
+			{
+				guid1: [
+					[entry_name1, type1, value1]
+				]
+			}
+			*/
+			Dictionary<string, List<string[]>> configs = [];
 			StringBuilder modListBuilder = new();
-			StringBuilder configListBuilder = new();
+
 			foreach (KeyValuePair<string, LocalModData> modDir in Plugin.mods)
 			{
 				LocalModData mod = modDir.Value;
@@ -378,9 +402,8 @@ namespace BoplModSyncer
 
 				if (config.Count == 0) continue;
 
-				// guid:entry_name1\ttype1\tvalue1\nentry_name2\ttype2\tvalue2\\
-				// \t, \n and \\ are blocked by ConfigDefinition so they can be used as a separator
-				configListBuilder.Append(modDir.Key).Append(':');
+				List<string[]> entries = [];
+
 				foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> entryDic in config)
 				{
 					ConfigEntryBase entry = entryDic.Value;
@@ -389,22 +412,38 @@ namespace BoplModSyncer
 					string type = entry.SettingType.FullName;
 					if (System.Type.GetType(type) == null) type = entry.SettingType.AssemblyQualifiedName;
 
-					configListBuilder.Append(entryDic.Key.MyToString()).Append('\t')
-						.Append(type).Append('\t')
-						.Append(entry.GetSerializedValue()).Append('\n');
+					entries.Add([entryDic.Key.MyToString(), type, entry.GetSerializedValue()]);
 				}
-				configListBuilder.RemoveLast().Append('\\');
+
+				configs.Add(modDir.Key, entries);
 			}
 
 			if (modListBuilder.Length > 0) modListBuilder.RemoveLast(); // remove last '|'
 			lobby.SetData(hostModListField, modListBuilder.ToString());
 
-			if (configListBuilder.Length > 0) configListBuilder.RemoveLast(); // remove last '\\'
-			lobby.SetData(hostConfigListField, configListBuilder.ToString());
+			lobby.SetData(hostConfigListField, configs.ToJson());
+
+			hostSetupDone = true;
 		}
 
 		internal static void OnLobbyMemberJoinedCallback_Postfix(Lobby lobby, Friend friend)
 		{
+			// lazy to check if this method is run for every connected user or just host, so just to be sure
+			if(!isHost) return;
+
+			// ToDo: some kind of feedback needed so people dont think this is a bug
+			// if host hasnt finished "booting" dont let people join
+			if(!hostSetupDone)
+			{
+				int playerIndex = SteamManager.instance.connectedPlayers.FindIndex(e => e.id == friend.Id);
+				if (playerIndex == -1) return;
+
+				SteamManager.instance.KickPlayer(playerIndex);
+				Plugin.logger.LogWarning($"Kicked \"{friend.Name}\" because host(you) still havent finished booting!");
+				return;
+			}
+
+			// ToDo: maybe use Entwined instead?
 			// kick those who dont have syncer
 			IEnumerator waitForField()
 			{

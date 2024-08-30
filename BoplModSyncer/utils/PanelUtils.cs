@@ -52,6 +52,8 @@ namespace BoplModSyncer.Utils
 		private static Transform GetPanel(GameObject panel) => 
 			(panel ?? currentPanel ?? throw new System.NullReferenceException("panel parameter and current panel is null")).transform;
 
+		private static MainMenu currentMenu = null;
+
 		private static GameObject CopyGeneric(GameObject genericPanel, string name)
 		{
 			GameObject panel = Object.Instantiate(genericPanel);
@@ -67,6 +69,7 @@ namespace BoplModSyncer.Utils
 			{
 				Object.Destroy(panel);
 				currentPanel = null;
+				currentMenu.EnableAll();
 			};
 
 			GetOkButtonComp(panel).onClick.AddListener(() =>
@@ -199,6 +202,20 @@ namespace BoplModSyncer.Utils
 			if (currentPanel != null) throw new System.Exception($"'{currentPanel.name}' panel is already open!");
 
 			Transform canvas = PanelUtils.GetCanvas();
+
+			if (SceneManager.GetActiveScene().name == "MainMenu")
+			{
+				foreach (var menu in canvas.GetComponentsInChildren<MainMenu>())
+				{
+					if (menu.IsEnabled)
+					{
+						menu.DisableAll();
+						currentMenu = menu;
+						break;
+					}
+				};
+			}
+
 			currentPanel = Object.Instantiate(panelToInstantiate, canvas);
 			SetupButtons(currentPanel, onOkClick);
 			return currentPanel;
